@@ -17,7 +17,7 @@ not all resources can be packaged to be installed
 Make sure you have the following installed on your machine:
 - [Ollama](https://ollama.ai/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
+- [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html)
 
 ### Steps
 
