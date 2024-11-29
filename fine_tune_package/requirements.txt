@@ -1,0 +1,11 @@
+Flask
+py2app
+mlx
+mlx_lm
+transformers
+numpy
+pydantic
+flask-cors
+celery
+redis
+psycopg2-binary
