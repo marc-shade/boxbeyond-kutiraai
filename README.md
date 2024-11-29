@@ -18,6 +18,9 @@ Make sure you have the following installed on your machine:
 - [Ollama](https://ollama.ai/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html)
+- [Install Node.js and npm](https://nodejs.org/en/download/package-manager)
+  ```bash
+  brew install node
 
 ### Steps
 
@@ -47,5 +50,6 @@ Make sure you have the following installed on your machine:
 5. Launch Frontend Application
    ```bash
    cd frontend-app
+   npm install
    npm start
 
