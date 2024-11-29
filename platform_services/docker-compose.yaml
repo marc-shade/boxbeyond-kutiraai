@@ -103,15 +103,3 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - autogen-data:/home/user/app
-
-  frontend:
-    build:
-      context: ./frontend-app
-      dockerfile: frontend_dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend-app:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=production
