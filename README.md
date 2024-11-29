@@ -21,22 +21,30 @@ Make sure you have the following installed on your machine:
 
 ### Steps
 
-1. Clone the repository:
-   
+1. Clone the Repository
    ```bash
-   git clone https://github.com/yourusername/ai-document-processor.git
-   cd ai-document-processor
+   git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
 
-Navigate into the project directory:
-cd project-name
-Install dependencies:
-npm install
-If you need to set up environment variables, create a .env file based on .env.example:
-cp .env.example .env
-Usage
+2. Start the platform services
+   ```bash
+   cd platform_services
+   docker compose up -d
+   
+3. Setup virtual environment for fine tune process
+   ```bash
+   cd fine_tune_package
+   conda create -n doc_processor python=3.11
+   conda activate doc_processor
+   pip install -r requirements.txt
+   python3 app.py
+   
+4. Start the celery process
+   ```bash
+   cd fine_tune_package
+   celery -A celery_tasks worker --loglevel=info
+   
+5. Launch Frontend Application
+   ```bash
+   cd frontend-app
+   npm start
 
-To run the project locally:
-
-Start the development server:
-npm start
-Open your browser and go to http://localhost:3000 to see the app in action.
