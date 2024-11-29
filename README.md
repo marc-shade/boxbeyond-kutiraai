@@ -38,9 +38,10 @@ Make sure you have the following installed on your machine:
    pip install -r requirements.txt
    python3 app.py
    
-4. Start the celery process
+4. Start the celery process (in another Terminal)
    ```bash
    cd fine_tune_package
+   conda activate doc_processor
    celery -A celery_tasks worker --loglevel=info
    
 5. Launch Frontend Application
