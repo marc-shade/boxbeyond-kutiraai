@@ -1,0 +1,23 @@
+# docker-compose.dev.yml (Development Overrides)
+version: '3.8'
+
+services:
+  workflow-engine:
+    volumes:
+      - ./src:/app/src:ro  # Source code mounting for hot-reload
+      - ./tests:/app/tests  # Test directory mounting
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG    # More detailed logging
+      - MAX_WORKERS=2      # Fewer workers for development
+      - TIMEOUT=600        # Longer timeout for debugging
+    ports:
+      - "6789:6789"        # Additional port for debugger
+    command: [
+      "uvicorn", 
+      "workflow_engine.api:app", 
+      "--host", "0.0.0.0", 
+      "--port", "8100", 
+      "--reload",          # Enable hot-reload
+      "--log-level", "debug"
+    ]

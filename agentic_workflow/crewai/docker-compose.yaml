@@ -1,0 +1,63 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  workflow-engine:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8100:8100"
+    volumes:
+      - ./src:/app/src  # For development hot-reload
+    environment:
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=workflow_db
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - LLM_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${MODEL:-ollama/mistral-7b-Q4:latest}
+      - LLM_BASE_URL=${API_BASE:-http://host.docker.internal:11434}
+      - MAX_WORKERS=4
+      - TIMEOUT=300
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - workflow-network
+  
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=workflow_db
+    command: -p 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d workflow_db -p 5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workflow-network
+
+volumes:
+  postgres_data:
+
+networks:
+  workflow-network:
+    driver: bridge
