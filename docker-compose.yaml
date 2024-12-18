@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # Platform Services
+  postgres-n8n:
+    extends:
+      file: ./platform_services/docker-compose.yaml
+      service: postgres-n8n
+    container_name: postgres-n8n
+    environment:
+      - POSTGRES_USER=${N8N_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${N8N_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${N8N_POSTGRES_DB}
+    networks:
+      - shared-network
+
+  redis:
+    extends:
+      file: ./platform_services/docker-compose.yaml
+      service: redis
+    networks:
+      - shared-network
+
+  qdrant:
+    extends:
+      file: ./platform_services/docker-compose.yaml
+      service: qdrant
+    networks:
+      - shared-network
+
+  n8n:
+    extends:
+      file: ./platform_services/docker-compose.yaml
+      service: n8n
+    container_name: n8n-processflow
+    environment:
+      - DB_POSTGRESDB_HOST=postgres-n8n
+      - DB_POSTGRESDB_USER=${N8N_POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${N8N_POSTGRES_PASSWORD}
+      - DB_POSTGRESDB_DATABASE=${N8N_POSTGRES_DB}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
+    networks:
+      - shared-network
+
+  n8n-import:
+    extends:
+      file: ./platform_services/docker-compose.yaml
+      service: n8n-import
+    networks:
+      - shared-network
+
+  # Agentic Workflow
+  postgres-workflow:
+    extends:
+      file: ./agentic_workflow/crewai/docker-compose.yaml
+      service: postgres-workflow
+    container_name: postgres-workflow
+    ports:
+      - "${WORKFLOW_POSTGRES_PORT}:${WORKFLOW_POSTGRES_PORT}"
+    environment:
+      - POSTGRES_USER=${WORKFLOW_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${WORKFLOW_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${WORKFLOW_POSTGRES_DB}
+      - PGPORT=${WORKFLOW_POSTGRES_PORT}
+    command: -p ${WORKFLOW_POSTGRES_PORT}
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WORKFLOW_POSTGRES_USER} -d ${WORKFLOW_POSTGRES_DB} -p ${WORKFLOW_POSTGRES_PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  workflow-engine:
+    extends:
+      file: ./agentic_workflow/crewai/docker-compose.yaml
+      service: workflow-engine
+    container_name: workflow-engine
+    networks:
+      - shared-network
+    environment:
+      - DB_USER=${WORKFLOW_POSTGRES_USER}
+      - DB_PASSWORD=${WORKFLOW_POSTGRES_PASSWORD}
+      - DB_NAME=${WORKFLOW_POSTGRES_DB}
+      - DB_PORT=${WORKFLOW_POSTGRES_PORT}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - MAX_WORKERS=${MAX_WORKERS}
+      - TIMEOUT=${TIMEOUT}
+    depends_on:
+      postgres-workflow:
+        condition: service_healthy
+
+  postgres-product:
+    extends:
+      file: ./product-backend-app/docker-compose.yaml
+      service: postgres-product
+    container_name: postgres-product
+    ports:
+      - "${PRODUCT_POSTGRES_PORT}:${PRODUCT_POSTGRES_PORT}"
+    environment:
+      - POSTGRES_USER=${PRODUCT_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${PRODUCT_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${PRODUCT_POSTGRES_DB}
+      - PGPORT=${PRODUCT_POSTGRES_PORT}
+    command: -p ${PRODUCT_POSTGRES_PORT}
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PRODUCT_POSTGRES_USER} -d ${PRODUCT_POSTGRES_DB} -p ${PRODUCT_POSTGRES_PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  product-api:
+    extends:
+      file: ./product-backend-app/docker-compose.yaml
+      service: product-api
+    container_name: product-api
+    ports:
+      - "8200:8200"
+    networks:
+      - shared-network
+    environment:
+      - DB_HOST=${PRODUCT_POSTGRES_HOST}
+      - DB_NAME=${PRODUCT_POSTGRES_DB}
+      - DB_USER=${PRODUCT_POSTGRES_USER}
+      - DB_PASSWORD=${PRODUCT_POSTGRES_PASSWORD}
+      - DB_PORT=${PRODUCT_POSTGRES_PORT}
+    depends_on:
+      postgres-product:
+        condition: service_healthy
+
+
+volumes:
+  n8n_storage:
+  postgres_n8n_storage:
+  postgres_agentic_storage:
+  postgres_product_storage:
+  qdrant_storage:
+
+networks:
+  shared-network:
+    name: shared-network
+    driver: bridge
