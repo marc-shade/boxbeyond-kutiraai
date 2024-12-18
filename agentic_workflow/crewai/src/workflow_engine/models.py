@@ -16,10 +16,11 @@ class Workflow(Base):
     author = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    tags = Column(JSON)
-    config = Column(JSON, nullable=False)
-    agents = Column(JSON, nullable=False)
-    tasks = Column(JSON, nullable=False)
+    
+    tags = Column(JSON)  # Store tags as JSON (list of strings)
+    config = Column(JSON, nullable=False)  # Store inputs and settings as JSON
+    agents = Column(JSON, nullable=False)  # Store agents as JSON (dictionary)
+    tasks = Column(JSON, nullable=False)  # Store tasks as JSON (list of dictionaries)
     is_active = Column(Boolean, default=True)
     versions = relationship("WorkflowVersion", back_populates="workflow")
 

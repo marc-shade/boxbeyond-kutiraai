@@ -1,0 +1,10 @@
+mlx_lm
+fastapi
+uvicorn
+celery
+redis
+sqlalchemy
+psycopg2-binary
+alembic
+python-dotenv
+huggingface_hub

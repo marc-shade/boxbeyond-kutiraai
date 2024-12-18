@@ -59,11 +59,11 @@ class AgentConfigurationError(ConfigurationError):
 
 class TaskConfigurationError(ConfigurationError):
     """Raised when there's an issue with task configuration"""
-    def __init__(self, message: str, task_name: str, config_key: Optional[str] = None):
+    def __init__(self, message: str, name: str, config_key: Optional[str] = None):
         super().__init__(
             message=message,
             config_file="tasks.yaml",
-            config_key=f"tasks.{task_name}" + (f".{config_key}" if config_key else "")
+            config_key=f"tasks.{name}" + (f".{config_key}" if config_key else "")
         )
 
 class WorkflowMetadataError(ConfigurationError):

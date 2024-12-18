@@ -10,64 +10,90 @@ from sqlalchemy.orm import Session
 from typing import List
 from . import crud, models, schemas
 from .database import engine, get_db
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Create database tables
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Create database tables if they don't exist yet.
 models.Base.metadata.create_all(bind=engine)
 
 @app.post("/workflows/", response_model=schemas.WorkflowInDB)
-def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_db)):
-    repo = crud.WorkflowRepository(db)
-    existing_workflow = repo.get_workflow(workflow.name)
-    if existing_workflow:
-        raise HTTPException(status_code=400, detail="Workflow already exists")
-    return repo.create_workflow(workflow)
+def create_workflow(workflow_data: schemas.WorkflowCreate, db: Session = Depends(get_db)):
+   repo = crud.WorkflowRepository(db)
+   
+   existing_workflow = repo.get_workflow_name(workflow_data.name)
+   
+   if existing_workflow:
+       raise HTTPException(status_code=400, detail="Workflow already exists")
+   
+   return repo.create_workflow(workflow_data)
 
 @app.get("/workflows/", response_model=List[schemas.WorkflowInDB])
 def list_workflows(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    repo = crud.WorkflowRepository(db)
-    return repo.get_workflows(skip=skip, limit=limit)
+   repo = crud.WorkflowRepository(db)
+   
+   return repo.get_workflows(skip=skip, limit=limit)
 
-@app.get("/workflows/{name}", response_model=schemas.WorkflowInDB)
-def get_workflow(name: str, db: Session = Depends(get_db)):
-    repo = crud.WorkflowRepository(db)
-    workflow = repo.get_workflow(name)
-    if workflow is None:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    return workflow
+@app.get("/workflows/{id}", response_model=schemas.WorkflowInDB)
+def get_workflow(id: int, db: Session = Depends(get_db)):
+   repo = crud.WorkflowRepository(db)
+   
+   workflow = repo.get_workflow(id)
+   
+   if workflow is None:
+       raise HTTPException(status_code=404, detail="Workflow not found")
+   
+   return workflow
 
-@app.put("/workflows/{name}", response_model=schemas.WorkflowInDB)
-def update_workflow(
-    name: str,
-    workflow: schemas.WorkflowUpdate,
-    db: Session = Depends(get_db)
-):
-    repo = crud.WorkflowRepository(db)
-    updated_workflow = repo.update_workflow(name, workflow)
-    if updated_workflow is None:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    return updated_workflow
+@app.put("/workflows/{id}", response_model=schemas.WorkflowInDB)
+def update_workflow(id: int, workflow_data: schemas.WorkflowUpdate, db: Session = Depends(get_db)):
+   repo = crud.WorkflowRepository(db)
+
+   updated_workflow = repo.update_workflow(id, workflow_data)
+
+   if updated_workflow is None:
+       raise HTTPException(status_code=404, detail="Workflow not found")
+   
+   return updated_workflow
 
 @app.delete("/workflows/{name}")
 def delete_workflow(name: str, db: Session = Depends(get_db)):
-    repo = crud.WorkflowRepository(db)
-    if not repo.delete_workflow(name):
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    return {"message": "Workflow deleted successfully"}
+   repo = crud.WorkflowRepository(db)
+
+   if not repo.delete_workflow(name):
+       raise HTTPException(status_code=404, detail="Workflow not found")
+   
+   return {"message": "Workflow deleted successfully"}
 
 class WorkflowRequest(BaseModel):
     workflow_name: str
     inputs: Dict[str, Any]
     trace: Optional[bool] = False
+    iterations: Optional[int] = 1
 
-def serialize_crew_output(crew_output) -> Dict[str, Any]:
-    """Convert CrewOutput to a serializable dictionary"""
+def serialize_crew_output(crew_output, output_key: str) -> Dict[str, Any]:
+    """Convert CrewOutput to a serializable dictionary
+    
+    Args:
+        crew_output: The output to serialize
+        output_key (str): The key to use in the output dictionary
+    
+    Returns:
+        Dict[str, Any]: Dictionary with the specified key and crew output as value
+    """
     return {
-        "final_output": str(crew_output)
+        output_key: str(crew_output)
     }
     
 @app.post("/workflows/execute")
@@ -113,7 +139,71 @@ async def execute_workflow(request: WorkflowRequest, db: Session = Depends(get_d
         response = {
             "workflow_name": request.workflow_name,
             "workflow_version": metadata.version,
-            "result": serialize_crew_output(result)
+            "token_usage": serialize_crew_output(result.token_usage, "metrics"),
+            "result": serialize_crew_output(result, "final_output")
+        }
+        
+        # If tracing was requested, include the traces in response
+        if traces is not None:
+            response["traces"] = traces
+            
+        return JSONResponse(content=response)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "Internal server error",
+                "details": {"error": str(e)}
+            }
+        )
+        
+@app.post("/workflows/train")
+async def train_workflow(request: WorkflowRequest, db: Session = Depends(get_db)):
+    try:
+        # Modify this to use proper db dependency
+        engine = WorkflowEngine(db)
+        traces = [] if request.trace else None
+        
+        try:
+            crew, metadata = engine.create_crew(
+                request.workflow_name, 
+                inputs=request.inputs, 
+                traces=traces
+            )
+        # Rest of your execution logic
+        except WorkflowNotFoundError as e:
+            raise HTTPException(
+                status_code=404,
+                detail={"message": str(e), "details": e.details}
+            )
+        except (ConfigurationError, ValidationError) as e:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": str(e), "details": e.details}
+            )
+        
+        try:
+            # execute the result
+            result = crew.train(n_iterations=int(request.iterations), inputs=request.inputs, filename=f"{request.workflow_name}.pkl")
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=408,
+                detail={"message": str(e), "details": e.details}
+            )
+        except WorkflowExecutionError as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"message": str(e), "details": e.details}
+            )
+        
+        # Prepare response
+        response = {
+            "workflow_name": request.workflow_name,
+            "workflow_version": metadata.version,
+            "result": serialize_crew_output(result, "final_output")
         }
         
         # If tracing was requested, include the traces in response

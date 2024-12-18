@@ -93,9 +93,13 @@ class WorkflowEngine:
             raise WorkflowEngineError("Workflow name cannot be empty")
 
         repo = crud.WorkflowRepository(self.db)
-        workflow = repo.get_workflow(workflow_name)
+        workflow = repo.get_workflow_name(workflow_name)
         if not workflow:
             raise WorkflowNotFoundError(f"Workflow '{workflow_name}' not found")
+        
+        # set the name and description in the config object
+        workflow.config['name'] = workflow.name
+        workflow.config['description'] = workflow.description
         
         return workflow.config, workflow.agents, workflow.tasks
 
@@ -141,6 +145,8 @@ class WorkflowEngine:
             workflow_metadata = WorkflowMetadata(metadata)
             workflow_metadata.validate_inputs(inputs)
             
+            logger.info(tasks_config)
+            
             # Create agents
             agents = {}
             for agent_id, config in agents_config.items():
@@ -156,29 +162,29 @@ class WorkflowEngine:
                 except Exception as e:
                     raise AgentConfigurationError(f"Error creating agent {agent_id}: {str(e)}")
             
-            # Validate tasks configuration
-            if 'tasks' not in tasks_config:
-                raise TaskConfigurationError("No tasks defined in workflow")
+            # Validate tasks list is empty or not
+            if tasks_config is None or len(tasks_config) == 0:
+                raise TaskConfigurationError("Tasks configuration cannot be empty")
                 
             # Create tasks
             tasks = []
-            for task_config in tasks_config['tasks']:
-                if 'agent' not in task_config:
+            for task in tasks_config:
+                if 'agent' not in task:
                     raise TaskConfigurationError("Task must specify an agent")
                 
-                agent_id = task_config.pop('agent')
+                agent_id = task.pop('agent')
                 if agent_id not in agents:
                     raise TaskConfigurationError(f"Agent '{agent_id}' not found")
                 
                 # Add callback if tracing is enabled
                 if self.traces is not None:
-                    task_config['callback'] = lambda output, task_name=task_config['name']: \
+                    task['callback'] = lambda output, task_name=task['name']: \
                         self.add_trace(task_name, output)
                 
                 # Create task
-                task_config['agent'] = agents[agent_id]
+                task['agent'] = agents[agent_id]
                 try:
-                    tasks.append(Task(**task_config))
+                    tasks.append(Task(**task))
                 except Exception as e:
                     raise TaskConfigurationError(f"Error creating task: {str(e)}")
             
@@ -193,7 +199,6 @@ class WorkflowEngine:
             }
         
             # Merge with user-provided crew configuration and workflow settings
-            crew_config.update(tasks_config.get('crew', {}))
             crew_config.update(workflow_metadata.settings)
             
             # Create crew
