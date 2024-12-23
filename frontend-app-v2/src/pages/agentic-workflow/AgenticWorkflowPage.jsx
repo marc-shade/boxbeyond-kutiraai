@@ -9,10 +9,11 @@ import {
   Typography
 } from '@mui/material';
 import { Add as AddIcon, } from '@mui/icons-material';
-import MainCard from 'components/MainCard';
 import { useNavigate } from 'react-router-dom';
 import WorkflowModal from './WorkflowModal';
 import WorkflowCard from './WorkflowCard';
+import { GlassmorphicContainer } from 'themes/GlassmorphicComponents';
+
 
 const AgenticWorkflowPage = () => {
   const navigate = useNavigate();
@@ -88,9 +89,9 @@ const AgenticWorkflowPage = () => {
 
 
   return (
-    <Box>
+    <GlassmorphicContainer variant="box"  sx={{ minHeight: '100vh' }}>
       <Container maxWidth="xl">
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5} mt={5}>
           <Typography variant="h4">Workflows</Typography>
           <Button
             variant="contained"
@@ -101,17 +102,16 @@ const AgenticWorkflowPage = () => {
           </Button>
         </Stack>
 
-        <MainCard content={false}>
+   
           <Box sx={{ p: 2 }}>
             <Grid container spacing={3}>
               {workflows.map((workflow) => (
                 <Grid key={workflow.id} item xs={12} sm={6} md={4}>
-                  <WorkflowCard workflow={workflow}  onEdit={handleOpenModal} />
+                  <WorkflowCard workflow={workflow}  onEdit={handleOpenModal}/>
                 </Grid>
               ))}
             </Grid>
           </Box>
-        </MainCard>
       </Container>
       <WorkflowModal
         open={isModalOpen}
@@ -119,7 +119,7 @@ const AgenticWorkflowPage = () => {
         handleSubmit={handleSubmit}
         initialData={editingWorkflow}
       />
-    </Box>
+    </GlassmorphicContainer>
   );
 };
 

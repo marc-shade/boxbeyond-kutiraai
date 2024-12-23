@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { GlassmorphicBox } from 'themes/GlassmorphicComponents';
 
 const WorkflowModal = ({ open, handleClose, handleSubmit, initialData }) => {
 
@@ -152,7 +153,7 @@ const WorkflowModal = ({ open, handleClose, handleSubmit, initialData }) => {
 
   return (
     <Modal open={open} onClose={handleClose}>
-      <Box sx={{
+      <GlassmorphicBox variant="box" sx={{
         position: 'absolute',
         top: '50%',
         left: '50%',
@@ -280,7 +281,7 @@ const WorkflowModal = ({ open, handleClose, handleSubmit, initialData }) => {
             Cancel
           </Button>
         </Box>
-      </Box>
+      </GlassmorphicBox>
     </Modal>
   );
 };

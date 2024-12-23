@@ -7,6 +7,7 @@ import logging
 from .engine import WorkflowEngine
 from .exceptions import WorkflowNotFoundError, ConfigurationError, WorkflowExecutionError, ValidationError
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from . import crud, models, schemas
 from .database import engine, get_db
@@ -27,6 +28,41 @@ app.add_middleware(
 
 # Create database tables if they don't exist yet.
 models.Base.metadata.create_all(bind=engine)
+
+@app.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    """
+    Health check endpoint that verifies:
+    1. API status
+    2. Database connection
+    """
+    health_status = {
+        "status": "healthy",
+        "services": {
+            "api": {"status": "healthy"},
+            "database": {"status": "unknown"}
+        }
+    }
+
+    # Check database connection using the injected db session
+    try:
+        db.execute(text("SELECT 1"))
+        health_status["services"]["database"] = {"status": "healthy"}
+    except Exception as e:
+        health_status["services"]["database"] = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+        health_status["status"] = "unhealthy"
+
+    # If any service is unhealthy, return 503
+    if health_status["status"] != "healthy":
+        raise HTTPException(
+            status_code=503,
+            detail=health_status
+        )
+
+    return health_status
 
 @app.post("/workflows/", response_model=schemas.WorkflowInDB)
 def create_workflow(workflow_data: schemas.WorkflowCreate, db: Session = Depends(get_db)):

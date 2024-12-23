@@ -24,7 +24,7 @@ import JSONPretty from 'react-json-pretty';
 import 'react-json-pretty/themes/monikai.css';
 import CheckIcon from '@mui/icons-material/Check';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-
+import { GlassmorphicPaper, GlassmorphicCard } from 'themes/GlassmorphicComponents';
 
 const WorkflowExecutionPage = () => {
     const { workflowId } = useParams();
@@ -141,7 +141,7 @@ const WorkflowExecutionPage = () => {
             <FinalOutput result={result} />
 
             {/* Execution Traces */}
-            <Card>
+            <GlassmorphicCard>
                 <CardContent sx={{ p: 0 }}>
                     <Box sx={{
                         px: 3,
@@ -212,7 +212,7 @@ const WorkflowExecutionPage = () => {
                         </Box>
                     </Box>
                 </CardContent>
-            </Card>
+            </GlassmorphicCard>
             {/* Token Usage Metrics */}
             {tokenUsage && <TokenUsage metrics={tokenUsage.metrics} />}
         </Box>
@@ -296,7 +296,7 @@ const WorkflowExecutionPage = () => {
         };
 
         return (
-            <Card sx={{ mb: 2, overflow: 'hidden' }}>
+            <GlassmorphicCard sx={{ mb: 2, overflow: 'hidden' }}>
                 <CardContent sx={{ p: 0 }}>
                     {/* Header */}
                     <Box sx={{
@@ -331,7 +331,7 @@ const WorkflowExecutionPage = () => {
                         <StyledOutput content={result.final_output} />
                     </Box>
                 </CardContent>
-            </Card>
+            </GlassmorphicCard>
         );
     };
 
@@ -350,7 +350,7 @@ const WorkflowExecutionPage = () => {
         const metrics_obj = parseMetrics(metrics);
 
         return (
-            <Card sx={{ mt: 3 }}>
+            <GlassmorphicCard sx={{ mt: 3 }}>
                 <CardContent sx={{ p: 0 }}>
                     <Box sx={{
                         px: 3,
@@ -402,7 +402,7 @@ const WorkflowExecutionPage = () => {
                         </Grid>
                     </Box>
                 </CardContent>
-            </Card>
+            </GlassmorphicCard>
         );
     };
 
@@ -426,7 +426,7 @@ const WorkflowExecutionPage = () => {
             <Grid container spacing={3}>
                 {/* Left Panel - Inputs */}
                 <Grid item xs={12} md={4}>
-                    <Paper sx={{ p: 3 }}>
+                    <GlassmorphicPaper sx={{ p: 3 }}>
                         <Typography variant="h6" sx={{ mb: 2 }}>
                             Input Parameters
                         </Typography>
@@ -467,12 +467,12 @@ const WorkflowExecutionPage = () => {
                                 activeTab === 'test' ? 'Test Workflow' : 'Train Workflow'
                             )}
                         </Button>
-                    </Paper>
+                    </GlassmorphicPaper>
                 </Grid>
 
                 {/* Right Panel - Results */}
                 <Grid item xs={12} md={8}>
-                    <Paper sx={{ p: 3, minHeight: '500px' }}>
+                    <GlassmorphicPaper sx={{ p: 3, minHeight: '500px' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                             <Typography variant="h6">
                                 Execution Results
@@ -509,7 +509,7 @@ const WorkflowExecutionPage = () => {
                                 Execute the workflow to see results
                             </Typography>
                         )}
-                    </Paper>
+                    </GlassmorphicPaper>
                 </Grid>
             </Grid>
         </Box>

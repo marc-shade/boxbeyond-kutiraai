@@ -17,6 +17,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import FolderIcon from '@mui/icons-material/Folder';
+import { GlassmorphicContainer } from 'themes/GlassmorphicComponents';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -34,6 +35,7 @@ const StyledCardContent = styled(CardContent)({
 });
 
 const DatasetCard = ({ dataset, onLaunch, onView }) => {
+
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'active': return 'success';
@@ -54,7 +56,7 @@ const DatasetCard = ({ dataset, onLaunch, onView }) => {
   };
 
   return (
-    <StyledCard>
+    <GlassmorphicContainer component={StyledCard} variant="card">
       <StyledCardContent>
         <Typography variant="h5" component="div" gutterBottom>
           {dataset.dataset_name}
@@ -132,7 +134,7 @@ const DatasetCard = ({ dataset, onLaunch, onView }) => {
           {dataset.dataset_status === 'Pending' ? 'Launch' : 'View Details'}
         </Button>
       </CardActions>
-    </StyledCard>
+    </GlassmorphicContainer>
   );
 };
 

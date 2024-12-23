@@ -18,6 +18,7 @@ const AgentSettings = Loadable(lazy(() => import('pages/agentic-workflow/AgentSe
 const WorkflowConfigPage = Loadable(lazy(() => import('pages/agentic-workflow/WorkflowConfigPage')));
 const WorkflowExecutionPage = Loadable(lazy(() => import('pages/agentic-workflow/WorkflowExecutionPage')));
 const FineTunePage = Loadable(lazy(() => import('pages/fine-tuning/FineTunePage')));
+const ImageGenerator = Loadable(lazy(() => import('pages/utilities/ImageGenerator')));
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -29,10 +30,6 @@ const MainRoutes = {
       element: <DashboardDefault />
     },
     {
-      path: 'color',
-      element: <Color />
-    },
-    {
       path: 'dashboard',
       children: [
         {
@@ -40,18 +37,6 @@ const MainRoutes = {
           element: <DashboardDefault />
         }
       ]
-    },
-    {
-      path: 'sample-page',
-      element: <SamplePage />
-    },
-    {
-      path: 'shadow',
-      element: <Shadow />
-    },
-    {
-      path: 'typography',
-      element: <Typography />
     },
     {
       path: 'fine-tuning/datasets',
@@ -66,10 +51,6 @@ const MainRoutes = {
       element: <AgenticWorkflowPage />
     },
     {
-      path: 'agentic/settings',
-      element: <AgentSettings />
-    },
-    {
       path : "agentic/workflow/:workflowId/config", 
       element: <WorkflowConfigPage />
     },
@@ -80,6 +61,10 @@ const MainRoutes = {
     {
       path: 'tuning/',
       element: <FineTunePage />
+    },
+    {
+      path: 'imagegen/',
+      element: <ImageGenerator />
     },
     
   ]

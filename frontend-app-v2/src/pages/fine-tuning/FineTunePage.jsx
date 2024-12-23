@@ -19,6 +19,7 @@ import SaveConfiguration from './components/SaveConfiguration';
 import SavedConfigurations from './components/SavedConfigurations';
 import { finetuneService } from './services/finetuneService';
 import { datasetService } from './services/datasetServices';
+import { checkServiceHealth } from './services/healthCheck';
 import ConfirmationDialog from './components/ConfirmationDialog';
 
 const steps = [
@@ -46,7 +47,6 @@ function FineTunePage() {
     message: '',
     severity: 'info' // can be 'error', 'warning', 'info', or 'success'
   });
-
 
   const [formData, setFormData] = useState({
     baseModel: null,
@@ -230,6 +230,24 @@ function FineTunePage() {
   const handleLaunchClick = async (config) => {
     console.log("Came here!!");
     setSelectedConfig(config);
+
+    // Check services health before launching
+    const healthStatus = await checkServiceHealth();
+
+    if (!healthStatus.isHealthy) {
+      let errorMessage = 'Cannot launch fine-tuning: ';
+      if (!healthStatus.status.api.healthy) {
+        errorMessage += 'API service is not available. ';
+      }
+      if (!healthStatus.status.celery.healthy) {
+        errorMessage += 'Celery workers are not available. ';
+      }
+
+      // Use your existing notification/alert system
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      return;
+    }
+
     setLaunchDialogOpen(true);
   };
 
@@ -334,122 +352,124 @@ function FineTunePage() {
   };
 
   return (
-    <Container maxWidth="lg">
-      {launchDialogOpen && <ConfirmationDialog
-        open={launchDialogOpen}
-        onClose={handleLaunchCancel}
-        onConfirm={handleLaunchConfirm}
-        title="Launch Training"
-        content="Are you sure you want to launch the training process? This operation cannot be interrupted once started."
-        loading={isLaunching}
-        config={selectedConfig}
-      />}
-      <Box sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Fine-tuning Configurations
-          </Typography>
-          {!showConfigurationForm && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => setShowConfigurationForm(true)}
-            >
-              Create Configuration
-            </Button>
-          )}
-        </Box>
-
-        {showConfigurationForm ? (
-          <>
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }} alternativeLabel>
-              {steps.map((step) => (
-                <Step key={step.label}>
-                  <StepLabel>
-                    <Typography variant="body2">{step.label}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {step.description}
-                    </Typography>
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-
-            <Box sx={{ mt: 4, mb: 4 }}>
-              {activeStep === 0 && (
-                <ChooseModel formData={formData} onUpdate={handleModelUpdate} />
-              )}
-              {activeStep === 1 && (
-                <ChooseDataset formData={formData} onUpdate={handleDatasetUpdate} />
-              )}
-              {activeStep === 2 && (
-                <FineTuneSettings
-                  formData={formData.settings}
-                  onUpdate={handleSettingsUpdate}
-                />
-              )}
-              {activeStep === 3 && (
-                <FineTuneReview formData={formData} />
-              )}
-              {activeStep === 4 && (
-                <SaveConfiguration
-                  configName={configName}
-                  onConfigNameChange={setConfigName}
-                  error={saveError}
-                  isSaving={isSaving}
-                  formData={formData}
-                />
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-              <Button
-                onClick={() => {
-                  if (activeStep === 0) {
-                    handleCloseForm();
-                  } else {
-                    handleBack();
-                  }
-                }}
-              >
-                {activeStep === 0 ? 'Cancel' : 'Back'}
-              </Button>
+    <Box sx={{ minHeight: '100vh' }}>
+      <Container maxWidth="lg">
+        {launchDialogOpen && <ConfirmationDialog
+          open={launchDialogOpen}
+          onClose={handleLaunchCancel}
+          onConfirm={handleLaunchConfirm}
+          title="Launch Training"
+          content="Are you sure you want to launch the training process? This operation cannot be interrupted once started."
+          loading={isLaunching}
+          config={selectedConfig}
+        />}
+        <Box sx={{ py: 4, ml:1 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Fine-tuning Configurations
+            </Typography>
+            {!showConfigurationForm && (
               <Button
                 variant="contained"
-                onClick={handleNext}
-                disabled={isSaving || !isStepComplete()}
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => setShowConfigurationForm(true)}
               >
-                {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                Create Configuration
               </Button>
-            </Box>
+            )}
+          </Box>
 
-          </>
-        ) : (
-          <SavedConfigurations
-            savedConfigurations={savedConfigurations}
-            onEdit={handleEditConfiguration}
-            onLaunch={handleLaunchClick}
-            onDelete={handleDeleteConfiguration}
-            loading={isLaunching}
-          />
-        )}
-      </Box>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert
+          {showConfigurationForm ? (
+            <>
+              <Stepper activeStep={activeStep} sx={{ mb: 4 }} alternativeLabel>
+                {steps.map((step) => (
+                  <Step key={step.label}>
+                    <StepLabel>
+                      <Typography variant="body2">{step.label}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {step.description}
+                      </Typography>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+
+              <Box sx={{ mt: 4, mb: 4 }}>
+                {activeStep === 0 && (
+                  <ChooseModel formData={formData} onUpdate={handleModelUpdate} />
+                )}
+                {activeStep === 1 && (
+                  <ChooseDataset formData={formData} onUpdate={handleDatasetUpdate} />
+                )}
+                {activeStep === 2 && (
+                  <FineTuneSettings
+                    formData={formData.settings}
+                    onUpdate={handleSettingsUpdate}
+                  />
+                )}
+                {activeStep === 3 && (
+                  <FineTuneReview formData={formData} />
+                )}
+                {activeStep === 4 && (
+                  <SaveConfiguration
+                    configName={configName}
+                    onConfigNameChange={setConfigName}
+                    error={saveError}
+                    isSaving={isSaving}
+                    formData={formData}
+                  />
+                )}
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                <Button
+                  onClick={() => {
+                    if (activeStep === 0) {
+                      handleCloseForm();
+                    } else {
+                      handleBack();
+                    }
+                  }}
+                >
+                  {activeStep === 0 ? 'Cancel' : 'Back'}
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  disabled={isSaving || !isStepComplete()}
+                >
+                  {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                </Button>
+              </Box>
+
+            </>
+          ) : (
+            <SavedConfigurations
+              savedConfigurations={savedConfigurations}
+              onEdit={handleEditConfiguration}
+              onLaunch={handleLaunchClick}
+              onDelete={handleDeleteConfiguration}
+              loading={isLaunching}
+            />
+          )}
+        </Box>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
           onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </Box>
   );
 }
 

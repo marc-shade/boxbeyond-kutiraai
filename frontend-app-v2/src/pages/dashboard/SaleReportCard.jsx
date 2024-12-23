@@ -31,7 +31,7 @@ export default function SaleReportCard() {
   const [value, setValue] = useState('today');
 
   return (
-    <>
+    <Grid>
       <Grid container alignItems="center" justifyContent="space-between">
         <Grid item>
           <Typography variant="h5">Sales Report</Typography>
@@ -54,6 +54,6 @@ export default function SaleReportCard() {
         </Grid>
       </Grid>
       <SalesChart />
-    </>
+    </Grid>
   );
 }

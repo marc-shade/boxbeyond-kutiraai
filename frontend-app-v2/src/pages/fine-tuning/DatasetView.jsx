@@ -14,6 +14,10 @@ import {
   CircularProgress,
 } from '@mui/material';
 
+import {
+  GlassmorphicContainer,
+} from 'themes/GlassmorphicComponents';
+
 const DatasetView = () => {
   const { id } = useParams();
   const [dataset, setDataset] = useState(null);
@@ -50,7 +54,7 @@ const DatasetView = () => {
     if (!jsonlContent || typeof jsonlContent !== 'string') {
       return [];
     }
-  
+
     const pairs = jsonlContent.split('<s>').filter(pair => pair.trim() !== '');
     return pairs.map(pair => {
       const [instruction, answer] = pair.split('[/INST]').map(item => item?.trim() || '');
@@ -58,12 +62,12 @@ const DatasetView = () => {
         ?.replace('[INST]', '')
         ?.replace(/^Question:\s*/i, '')
         ?.trim();
-  
+
       const cleanedAnswer = answer
         ?.replace('</s>', '')
         ?.replace(/"$/, '') // Remove trailing double quote
         ?.trim();
-  
+
       // Only return pairs where both question and answer are non-empty
       if (question && cleanedAnswer) {
         return { question, answer: cleanedAnswer };
@@ -79,29 +83,34 @@ const DatasetView = () => {
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>{datasetDetails.dataset_name}</Typography>
       <Typography variant="subtitle1" gutterBottom>{datasetDetails.dataset_desc}</Typography>
-
-      <Grid container spacing={2} sx={{ mt: 3 }}>
-        <Grid item xs={12} md={8}>
-          <Grid container spacing={2}>
+      <Grid container columnSpacing={2} sx={{ mt: 3 }}>
+        <Grid item xs={12} md={7.5}>
+            <Grid container item spacing={2}>
             {dataset.map((chunk, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
-                <Card
+                <GlassmorphicContainer
+                  component={Card}
+                  variant="card"
                   sx={{ height: '100%', cursor: 'pointer' }}
                   onClick={() => handleChunkClick(chunk)}
                 >
-                  <CardContent>
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                     <Typography variant="h6" gutterBottom>Chunk {index + 1}</Typography>
                     <Typography variant="body2">
                       {chunk.chunk_text.split('\n').slice(0, 6).join('\n')}
                     </Typography>
                   </CardContent>
-                </Card>
+                </GlassmorphicContainer>
               </Grid>
             ))}
           </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper elevation={3} sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+        <Grid item xs={12} md={4.5}>
+          <GlassmorphicContainer
+            component={Paper}
+            variant="card"
+            sx={{ p: 2, height: '100%', overflow: 'auto' }}
+          >
             <Typography variant="h6" gutterBottom>Metadata & Q&A</Typography>
             {selectedChunk ? (
               <>
@@ -124,7 +133,7 @@ const DatasetView = () => {
             ) : (
               <Typography>Select a chunk to view details</Typography>
             )}
-          </Paper>
+          </GlassmorphicContainer>
         </Grid>
       </Grid>
     </Box>

@@ -1,15 +1,25 @@
-// https://github.com/vitejs/vite/discussions/3448
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import jsconfigPaths from 'vite-jsconfig-paths';
-
-// ----------------------------------------------------------------------
+import fs from 'fs/promises';
 
 export default defineConfig({
   plugins: [react(), jsconfigPaths()],
-  // https://github.com/jpuri/react-draft-wysiwyg/issues/1317
-  base: '/free', // accessing env variable is not possible here. So hard coding this.
+  base: '/free',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        format: 'es',
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    }
+  },
   define: {
     global: 'window'
   },
@@ -26,15 +36,13 @@ export default defineConfig({
     ]
   },
   server: {
-    // this ensures that the browser opens upon server start
     open: true,
-    // this sets a default port to 3000
-    port: 3000
+    port: 3000,
+    host: true
   },
   preview: {
-    // this ensures that the browser opens upon preview start
     open: true,
-    // this sets a default port to 3000
-    port: 3000
+    port: 3000,
+    host: true
   }
 });

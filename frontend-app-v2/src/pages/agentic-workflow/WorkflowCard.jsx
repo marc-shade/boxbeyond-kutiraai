@@ -9,12 +9,13 @@ import {
 } from '@mui/material';
 import { SettingOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons'; // Adjust imports based on your icon library
 import { useNavigate } from 'react-router-dom';
+import { GlassmorphicCard } from 'themes/GlassmorphicComponents';
 
-const WorkflowCard = ({ workflow, onEdit }) => {
+const WorkflowCard = ({ workflow, onEdit, sx }) => {
   const navigate = useNavigate();
 
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <GlassmorphicCard sx={{ ...sx, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Optional: Add CardMedia if you have an image */}
       {/* <CardMedia component="img" image={media} alt="Workflow Image" /> */}
 
@@ -68,7 +69,7 @@ const WorkflowCard = ({ workflow, onEdit }) => {
           <PlayCircleOutlined />
         </ToggleButton>
       </ToggleButtonGroup>
-    </Card>
+    </GlassmorphicCard>
   )
 };
 

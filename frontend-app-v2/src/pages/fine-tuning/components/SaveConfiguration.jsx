@@ -8,6 +8,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import { GlassmorphicPaper } from 'themes/GlassmorphicComponents';
 
 function SaveConfiguration({ 
   configName, 
@@ -18,7 +19,7 @@ function SaveConfiguration({
 }) {
   return (
     <Box>
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <GlassmorphicPaper sx={{ p: 3, mb: 3 }}>
         <Box component="form" noValidate>
           <TextField
             fullWidth
@@ -52,7 +53,7 @@ function SaveConfiguration({
             </Typography>
           </Box>
         </Box>
-      </Paper>
+      </GlassmorphicPaper>
     </Box>
   );
 }

@@ -19,6 +19,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
 import StarIcon from '@mui/icons-material/Star';
 import DownloadIcon from '@mui/icons-material/Download';
+import { GlassmorphicContainer } from 'themes/GlassmorphicComponents';
 
 function ChooseModel({ formData, onUpdate }) {
   const [models, setModels] = useState([]);
@@ -35,7 +36,7 @@ function ChooseModel({ formData, onUpdate }) {
     const initializeModel = async () => {
       if (formData.baseModel) {
         setSelectedModel(formData.baseModel);
-        
+
         // Extract author from the model ID (assuming format: author/model-name)
         const modelAuthor = formData.baseModel.id.split('/')[0];
         setAuthor(modelAuthor);
@@ -142,51 +143,50 @@ function ChooseModel({ formData, onUpdate }) {
   return (
     <Box>
       {/* Author Search Section */}
-      <Box sx={{
-        display: 'flex',
-        gap: 2,
-        mb: 3,
-        maxWidth: '800px',
-        mx: 'auto',
-        justifyContent: 'center'
-      }}>
-        <TextField
-          size="small"
-          sx={{ width: '300px' }}
-          label="Author Name"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          onKeyPress={handleAuthorSubmit}
-          placeholder="e.g., meta-llama"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Button
-          variant="contained"
-          onClick={handleAuthorSubmit}
-          disabled={!author.trim() || loading}
-          size="small"
-        >
-          Search
-        </Button>
-      </Box>
-
-      {authorSubmitted && (
         <Box sx={{
+          display: 'flex',
+          gap: 2,
           mb: 3,
           maxWidth: '800px',
           mx: 'auto',
-          display: 'flex',
           justifyContent: 'center'
         }}>
           <TextField
             size="small"
-            sx={{ width: '500px' }}
+            sx={{ width: '300px' }}
+            label="Author Name"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            onKeyPress={handleAuthorSubmit}
+            placeholder="e.g., meta-llama"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button
+            variant="contained"
+            onClick={handleAuthorSubmit}
+            disabled={!author.trim() || loading}
+            size="small"
+          >
+            Search
+          </Button>
+        </Box>
+
+      {authorSubmitted && (
+        <GlassmorphicContainer
+          component={Box}
+          variant="glassmorphism"
+          container
+          sx={{ mb: 3, maxWidth: '800px', mx: 'auto', display: 'flex', justifyContent: 'center' }}
+        >
+          <TextField
+            size="small"
+            sx={{ width: '500px', border: 'none' }}
             placeholder="Search models..."
             value={searchQuery}
             onChange={handleSearch}
@@ -198,7 +198,7 @@ function ChooseModel({ formData, onUpdate }) {
               ),
             }}
           />
-        </Box>
+        </GlassmorphicContainer>
       )}
 
       {loading && (
@@ -217,11 +217,15 @@ function ChooseModel({ formData, onUpdate }) {
         <Grid container spacing={3} sx={{ maxWidth: '1200px', mx: 'auto' }}>
           {models.map((model) => (
             <Grid item xs={12} sm={6} md={4} key={model.id}>
-              <Card sx={{
-                height: '100%',
-                border: (selectedModel?.id === model.id) ? 2 : 1,
-                borderColor: (selectedModel?.id === model.id) ? 'primary.main' : 'divider',
-              }}>
+              <GlassmorphicContainer
+                component={Card}
+                variant="card"
+                sx={{
+                  height: '100%',
+                  border: (selectedModel?.id === model.id) ? 2 : 1,
+                  borderColor: (selectedModel?.id === model.id) ? 'primary.main' : 'divider',
+                }}
+              >
                 <CardActionArea
                   onClick={(e) => handleModelSelect(model)}
                   sx={{ height: '100%' }}
@@ -286,7 +290,7 @@ function ChooseModel({ formData, onUpdate }) {
                     </Box>
                   </CardContent>
                 </CardActionArea>
-              </Card>
+              </GlassmorphicContainer>
             </Grid>
           ))}
         </Grid>

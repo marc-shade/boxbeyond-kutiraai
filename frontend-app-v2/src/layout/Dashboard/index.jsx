@@ -15,6 +15,7 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
 
+
 // ==============================|| MAIN LAYOUT ||============================== //
 
 export default function DashboardLayout() {
@@ -34,7 +35,7 @@ export default function DashboardLayout() {
       <Drawer />
       <Box component="main" sx={{ width: 'calc(100% - 260px)', flexGrow: 1, p: { xs: 2, sm: 3 } }}>
         <Toolbar />
-        <Breadcrumbs navigation={navigation} title />
+        {/** <Breadcrumbs navigation={navigation} title /> **/}
         <Outlet />
       </Box>
     </Box>

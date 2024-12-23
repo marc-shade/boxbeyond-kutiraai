@@ -27,6 +27,12 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import PreviewIcon from '@mui/icons-material/Preview';
+import {
+  GlassmorphicContainer, GlassmorphicDialog,
+  GlassmorphicDialogTitle,
+  GlassmorphicDialogContent,
+  GlassmorphicDialogActions
+} from 'themes/GlassmorphicComponents';
 
 function ChooseDataset({ formData, onUpdate }) {
   const [datasets, setDatasets] = useState([]);
@@ -138,14 +144,16 @@ function ChooseDataset({ formData, onUpdate }) {
       <Grid container spacing={3}>
         {filteredDatasets.map((dataset) => (
           <Grid item xs={12} sm={6} md={4} key={dataset.id}>
-            <Card 
-              sx={{ 
+            <GlassmorphicContainer
+              component={Card}
+              variant="card"
+              sx={{
                 height: '100%',
                 border: selectedDataset?.id === dataset.id ? 2 : 1,
                 borderColor: selectedDataset?.id === dataset.id ? 'primary.main' : 'divider',
               }}
             >
-              <CardActionArea 
+              <CardActionArea
                 onClick={() => handleDatasetSelect(dataset)}
                 sx={{ height: '100%' }}
               >
@@ -159,17 +167,17 @@ function ChooseDataset({ formData, onUpdate }) {
                   </Typography>
 
                   <Box sx={{ mt: 2, mb: 2 }}>
-                    <Chip 
+                    <Chip
                       label={`${dataset.recordCount || 0} records`}
                       size="small"
                       sx={{ mr: 1, mb: 1 }}
                     />
-                    <Chip 
+                    <Chip
                       label={formatFileSize(dataset.size || 0)}
                       size="small"
                       sx={{ mr: 1, mb: 1 }}
                     />
-                    <Chip 
+                    <Chip
                       label={dataset.dataset_status}
                       color={dataset.dataset_status === 'Success' ? 'success' : 'warning'}
                       size="small"
@@ -186,26 +194,26 @@ function ChooseDataset({ formData, onUpdate }) {
                   </Button>
                 </CardContent>
               </CardActionArea>
-            </Card>
+            </GlassmorphicContainer>
           </Grid>
         ))}
       </Grid>
 
       {/* Preview Dialog */}
-      <Dialog
+      <GlassmorphicDialog
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Dataset Preview</DialogTitle>
-        <DialogContent>
+        <GlassmorphicDialogTitle>Dataset Preview</GlassmorphicDialogTitle>
+        <GlassmorphicDialogContent>
           {previewLoading ? (
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
             </Box>
           ) : previewData ? (
-            <TableContainer component={Paper}>
+            <GlassmorphicContainer component={TableContainer} variant="card">
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -224,15 +232,15 @@ function ChooseDataset({ formData, onUpdate }) {
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </GlassmorphicContainer>
           ) : (
             <Typography>No preview data available</Typography>
           )}
-        </DialogContent>
-        <DialogActions>
+        </GlassmorphicDialogContent>
+        <GlassmorphicDialogActions>
           <Button onClick={() => setPreviewOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        </GlassmorphicDialogActions>
+      </GlassmorphicDialog>
 
       {filteredDatasets.length === 0 && (
         <Box display="flex" justifyContent="center" p={3}>

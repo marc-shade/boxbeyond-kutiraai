@@ -6,9 +6,13 @@ import Box from '@mui/material/Box';
 import NavGroup from './NavGroup';
 import menuItem from 'menu-items';
 
+import { useTheme } from '@mui/material/styles';
+
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 
 export default function Navigation() {
+  const theme = useTheme();
+
   const navGroups = menuItem.items.map((item) => {
     switch (item.type) {
       case 'group':
@@ -22,5 +26,8 @@ export default function Navigation() {
     }
   });
 
-  return <Box sx={{ pt: 2 }}>{navGroups}</Box>;
+  return <Box sx={{ 
+    pt: 2, 
+    color: theme.palette.text.primary,
+  }}>{navGroups}</Box>;
 }

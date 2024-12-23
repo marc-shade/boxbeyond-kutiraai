@@ -32,8 +32,10 @@ import SaveIcon from '@mui/icons-material/Save';
 import FolderIcon from '@mui/icons-material/Folder';
 import ModelTrainingIcon from '@mui/icons-material/ModelTraining';
 import { validateModelName, validateDirectory } from 'utils/validation';
+import { GlassmorphicCard } from 'themes/GlassmorphicComponents';
 
 function FineTuneSettings({ formData, onUpdate }) {
+
   const [settings, setSettings] = useState(() => ({
     num_iterations: formData?.num_iterations || 1000,
     steps_per_eval: formData?.steps_per_eval || 100,
@@ -145,7 +147,7 @@ function FineTuneSettings({ formData, onUpdate }) {
 
         {/* Model Name Card */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <GlassmorphicCard>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <SaveIcon color="primary" sx={{ mr: 1 }} />
@@ -180,12 +182,12 @@ function FineTuneSettings({ formData, onUpdate }) {
                 }}
               />
             </CardContent>
-          </Card>
+          </GlassmorphicCard>
         </Grid>
 
         {/* Processing Directory Card */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <GlassmorphicCard>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <FolderIcon color="primary" sx={{ mr: 1 }} />
@@ -213,11 +215,11 @@ function FineTuneSettings({ formData, onUpdate }) {
                 }}
               />
             </CardContent>
-          </Card>
+          </GlassmorphicCard>
         </Grid>
 
         <Grid item xs={12}>
-          <Card>
+          <GlassmorphicCard>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <LayersIcon color="primary" sx={{ mr: 1 }} />
@@ -341,12 +343,12 @@ function FineTuneSettings({ formData, onUpdate }) {
                 </Grid>
               </Grid>
             </CardContent>
-          </Card>
+          </GlassmorphicCard>
         </Grid>
 
         {/* Training Iterations Card */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <GlassmorphicCard>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <SpeedIcon color="primary" sx={{ mr: 1 }} />
@@ -374,12 +376,12 @@ function FineTuneSettings({ formData, onUpdate }) {
                 Current: {typeof settings.num_iterations === 'number' ? settings.num_iterations : 1000} iterations
               </Typography>
             </CardContent>
-          </Card>
+          </GlassmorphicCard>
         </Grid>
 
         {/* Batch Size Card */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <GlassmorphicCard>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <LayersIcon color="primary" sx={{ mr: 1 }} />
@@ -403,13 +405,13 @@ function FineTuneSettings({ formData, onUpdate }) {
                 </Select>
               </FormControl>
             </CardContent>
-          </Card>
+          </GlassmorphicCard>
         </Grid>
 
         {/* Advanced Settings */}
         <Grid item xs={12}>
           <Collapse in={settings.advancedMode}>
-            <Card>
+            <GlassmorphicCard>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Advanced Configuration
@@ -502,7 +504,7 @@ function FineTuneSettings({ formData, onUpdate }) {
                   </Alert>
                 </Grid>
               </CardContent>
-            </Card>
+            </GlassmorphicCard>
           </Collapse>
 
         </Grid>

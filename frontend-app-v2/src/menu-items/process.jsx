@@ -10,7 +10,7 @@ const icons = {
 
 const process = {
   id: 'services',
-  title: 'Process Flow',
+  title: 'Use Case Manager',
   type: 'group',
   children: [
     {

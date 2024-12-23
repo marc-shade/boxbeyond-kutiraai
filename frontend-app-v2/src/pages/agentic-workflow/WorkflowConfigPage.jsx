@@ -31,6 +31,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate, useParams } from 'react-router-dom';
+import { GlassmorphicPaper, GlassmorphicBox, GlassmorphicCard, GlassmorphicContainer } from 'themes/GlassmorphicComponents';
 
 const WorkflowConfigPage = () => {
   const { workflowId } = useParams();
@@ -373,7 +374,7 @@ const WorkflowConfigPage = () => {
         <Breadcrumbs>
           <Link
             component="button"
-            onClick={() => navigate('/agentic')}
+            onClick={() => navigate('/agentic/workflow/ ')}
             underline="hover"
           >
             Workflows
@@ -392,7 +393,7 @@ const WorkflowConfigPage = () => {
       <Grid container spacing={3}>
         {/* Left Sidebar - Agents List */}
         <Grid item xs={3}>
-          <Paper sx={{ p: 2, height: '100%' }}>
+          <GlassmorphicPaper sx={{ p: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6">Agents</Typography>
               <Button
@@ -434,13 +435,13 @@ const WorkflowConfigPage = () => {
                 </ListItem>
               ))}
             </List>
-          </Paper>
+          </GlassmorphicPaper>
         </Grid>
 
         {/* Main Content - Agent/Task Details */}
         <Grid item xs={9}>
           {selectedAgent && (
-            <Paper sx={{ p: 3 }}>
+            <GlassmorphicPaper sx={{ p: 3 }}>
               {/* Agent Details */}
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>Agent Details</Typography>
@@ -555,7 +556,7 @@ const WorkflowConfigPage = () => {
               <Divider sx={{ my: 3 }} />
 
               {/* Tasks Section */}
-              <Box>
+              <GlassmorphicBox>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant="h6">Tasks</Typography>
                   <Button
@@ -567,15 +568,13 @@ const WorkflowConfigPage = () => {
                   </Button>
                 </Box>
 
-                <Grid container spacing={2}>
+                <GlassmorphicContainer variant="Grid" container spacing={2} sx={{m:3}}>
                   {tasks
                     .filter(task => task.agentId === selectedAgent)
                     .map(task => (
                       <Grid item xs={12} key={task.id}>
-                        <Card
-                          variant="outlined"
+                        <GlassmorphicCard
                           sx={{
-                            borderColor: selectedTask === task.id ? 'primary.main' : 'inherit',
                             cursor: 'pointer'
                           }}
                           onClick={() => setSelectedTask(task.id)}
@@ -680,12 +679,12 @@ const WorkflowConfigPage = () => {
                               </Box>
                             )}
                           </CardContent>
-                        </Card>
+                        </GlassmorphicCard>
                       </Grid>
                     ))}
-                </Grid>
-              </Box>
-            </Paper>
+                </GlassmorphicContainer>
+              </GlassmorphicBox>
+            </GlassmorphicPaper>
           )}
         </Grid>
       </Grid>
@@ -694,7 +693,7 @@ const WorkflowConfigPage = () => {
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
         <Button
           variant="outlined"
-          onClick={() => navigate(`/agentic`)}
+          onClick={() => navigate(`/agentic/workflow`)}
         >
           Cancel
         </Button>

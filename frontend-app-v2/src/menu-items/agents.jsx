@@ -1,10 +1,9 @@
 // assets
-import { NodeCollapseOutlined, ProfileOutlined } from '@ant-design/icons';
+import { NodeCollapseOutlined } from '@ant-design/icons';
 
 // icons
 const icons = {
   NodeCollapseOutlined,
-  ProfileOutlined
 };
 
 // ==============================|| MENU ITEMS - EXTRA PAGES ||============================== //
@@ -20,13 +19,6 @@ const agents = {
       type: 'item',
       url: '/agentic/workflow',
       icon: icons.NodeCollapseOutlined
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      type: 'item',
-      url: '/agentic/settings',
-      icon: icons.ProfileOutlined,
     }
   ]
 };

@@ -60,7 +60,6 @@ services:
       - ./shared:/data/shared
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - N8N_DISABLE_X_FRAME_OPTIONS=true
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

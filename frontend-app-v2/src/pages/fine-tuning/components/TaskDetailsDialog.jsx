@@ -15,6 +15,7 @@ import {
     CircularProgress
 } from '@mui/material';
 import { finetuneService } from '../services/finetuneService';
+import { GlassmorphicDialog } from 'themes/GlassmorphicComponents';
 
 function TaskDetailsDialog({ open, onClose, taskDetails: initialTaskDetails, configId, configName, loading }) {
     const [taskDetails, setTaskDetails] = useState(initialTaskDetails);
@@ -63,7 +64,7 @@ function TaskDetailsDialog({ open, onClose, taskDetails: initialTaskDetails, con
     }, [open, configId, taskDetails?.status]);
 
     return (
-        <Dialog
+        <GlassmorphicDialog
             open={open}
             onClose={taskDetails?.status !== 'IN_PROGRESS' ? onClose : undefined}
             maxWidth="md"
@@ -145,7 +146,7 @@ function TaskDetailsDialog({ open, onClose, taskDetails: initialTaskDetails, con
                     Close
                 </Button>
             </DialogActions>
-        </Dialog>
+        </GlassmorphicDialog>
     );
 }
 

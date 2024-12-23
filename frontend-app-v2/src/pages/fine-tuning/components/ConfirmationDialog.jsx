@@ -1,10 +1,6 @@
 // src/components/ConfirmationDialog.jsx
 import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Typography,
   Box,
@@ -12,6 +8,7 @@ import {
   Divider,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import { GlassmorphicDialog, GlassmorphicDialogActions, GlassmorphicDialogTitle, GlassmorphicDialogContent } from 'themes/GlassmorphicComponents';
 
 function ConfirmationDialog({ 
   open, 
@@ -23,17 +20,17 @@ function ConfirmationDialog({
   config 
 }) {
   return (
-    <Dialog
+    <GlassmorphicDialog
       open={open}
       onClose={loading ? undefined : onClose}
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle sx={{ pb: 1 }}>
+      <GlassmorphicDialogTitle sx={{ pb: 1 }}>
         {title}
-      </DialogTitle>
+      </GlassmorphicDialogTitle>
       <Divider />
-      <DialogContent>
+      <GlassmorphicDialogContent>
         <Typography>{content}</Typography>
         
         {config && (
@@ -54,8 +51,8 @@ function ConfirmationDialog({
             </Box>
           </Box>
         )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      </GlassmorphicDialogContent>
+      <GlassmorphicDialogActions sx={{ px: 3, pb: 2 }}>
         <Button 
           onClick={onClose} 
           disabled={loading}
@@ -73,8 +70,8 @@ function ConfirmationDialog({
         >
           {loading ? 'Launching...' : 'Launch Training'}
         </Button>
-      </DialogActions>
-    </Dialog>
+      </GlassmorphicDialogActions>
+    </GlassmorphicDialog>
   );
 }
 

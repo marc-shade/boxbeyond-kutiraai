@@ -64,25 +64,41 @@ async def health_check(db: DatabaseInterface = Depends(get_db)):
 
     # Check Celery worker
     try:
-        # Send a simple task to check if celery is working
-        inspect = app.state.celery_app.control.inspect()
-        active_workers = inspect.active()
+        # First try to ping workers
+        inspect = app.state.celery_app.control.inspect(timeout=3.0)
+        ping_result = inspect.ping()
         
-        if active_workers:
-            health_status["services"]["celery"] = {
-                "status": "healthy",
-                "workers": list(active_workers.keys())
-            }
+        if ping_result:
+            # If ping successful, check for active workers
+            active_workers = inspect.active()
+            if active_workers:
+                health_status["services"]["celery"] = {
+                    "status": "healthy",
+                    "workers": list(active_workers.keys())
+                }
+            else:
+                health_status["services"]["celery"] = {
+                    "status": "unhealthy",
+                    "error": "Workers found but not active"
+                }
+                health_status["status"] = "degraded"
         else:
             health_status["services"]["celery"] = {
                 "status": "unhealthy",
-                "error": "No active workers found"
+                "error": "No workers responded to ping"
             }
             health_status["status"] = "degraded"
+            
+    except (ConnectionError, TimeoutError) as e:
+        health_status["services"]["celery"] = {
+            "status": "unhealthy",
+            "error": f"Connection error: {str(e)}"
+        }
+        health_status["status"] = "degraded"
     except Exception as e:
         health_status["services"]["celery"] = {
             "status": "unhealthy",
-            "error": str(e)
+            "error": f"Unexpected error: {str(e)}"
         }
         health_status["status"] = "degraded"
 

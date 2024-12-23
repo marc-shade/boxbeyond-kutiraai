@@ -5,7 +5,7 @@ import {
   BarcodeOutlined,
   BgColorsOutlined,
   FontSizeOutlined,
-  LoadingOutlined,
+  PictureOutlined,
   QrcodeOutlined
 } from '@ant-design/icons';
 
@@ -16,7 +16,7 @@ const icons = {
   BgColorsOutlined,
   BarcodeOutlined,
   AntDesignOutlined,
-  LoadingOutlined,
+  PictureOutlined,
   AppstoreAddOutlined
 };
 
@@ -37,25 +37,11 @@ const utilities = {
       target: true
     },
     {
-      id: 'util-typography',
-      title: 'Typography',
+      id: 'image-generator',
+      title: 'Image Generator',
       type: 'item',
-      url: '/typography',
-      icon: icons.FontSizeOutlined
-    },
-    {
-      id: 'util-color',
-      title: 'Color',
-      type: 'item',
-      url: '/color',
-      icon: icons.BgColorsOutlined
-    },
-    {
-      id: 'util-shadow',
-      title: 'Shadow',
-      type: 'item',
-      url: '/shadow',
-      icon: icons.BarcodeOutlined
+      icon: icons.PictureOutlined,
+      url: '/imagegen',
     }
   ]
 };

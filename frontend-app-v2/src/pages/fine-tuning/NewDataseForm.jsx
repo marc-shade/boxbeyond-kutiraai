@@ -11,6 +11,13 @@ import {
   styled
 } from '@mui/material';
 
+import {
+  GlassmorphicDialog,
+  GlassmorphicDialogTitle,
+  GlassmorphicDialogContent,
+  GlassmorphicDialogActions
+} from 'themes/GlassmorphicComponents';
+
 const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
   width: '500px',
   '& .MuiTextField-root': {
@@ -52,10 +59,11 @@ const NewDatasetForm = ({ open, onClose, onSubmit }) => {
     onClose();
   };
 
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md">
+    <GlassmorphicDialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle><Typography variant="h5" fontWeight="bold">Create New Dataset</Typography></DialogTitle>
-      <StyledDialogContent>
+      <DialogContent>
         <TextField
           autoFocus
           margin="dense"
@@ -165,14 +173,14 @@ const NewDatasetForm = ({ open, onClose, onSubmit }) => {
           onChange={handleChange}
         />
         <FieldDescription>Specify the system prompt template used for this dataset (optional).</FieldDescription>
-      </StyledDialogContent>
+      </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" color="primary">
           Create
         </Button>
       </DialogActions>
-    </Dialog>
+    </GlassmorphicDialog>
   );
 };
 

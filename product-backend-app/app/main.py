@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import configuration, dataset_master, dataset_output, dataset_template, finetune
+from app.api import configuration, dataset_master, dataset_output, dataset_template, finetune, image
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -17,6 +17,7 @@ app.include_router(dataset_master.router, prefix="/api/v1", tags=["dataset_maste
 app.include_router(dataset_output.router, prefix="/api/v1", tags=["dataset_outputs"])
 app.include_router(dataset_template.router, prefix="/api/v1", tags=["dataset_templates"])
 app.include_router(finetune.router, prefix="/api/v1", tags=["finetune"])
+app.include_router(image.router, prefix="/api/v1", tags=["image"])
 
 @app.get("/health")
 async def health_check():

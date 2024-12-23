@@ -135,6 +135,22 @@ services:
       postgres-product:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./frontend-app-v2
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_VERSION: v1.3.0
+        GENERATE_SOURCEMAP: "false"
+        PUBLIC_URL: https://mantisdashboard.io/free
+        VITE_APP_BASE_NAME: /free
+    container_name: frontend-app
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_APP_API_URL=http://localhost/api
+    networks:
+      - shared-network
 
 volumes:
   n8n_storage:

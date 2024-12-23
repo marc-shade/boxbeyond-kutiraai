@@ -12,6 +12,7 @@ import {
   ListItemText,
   Alert
 } from '@mui/material';
+import { GlassmorphicPaper } from 'themes/GlassmorphicComponents';
 
 function FineTuneReview({ formData }) {
   const formatValue = (value) => {
@@ -31,7 +32,7 @@ function FineTuneReview({ formData }) {
       <Grid container spacing={3}>
         {/* Base Model Section */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+          <GlassmorphicPaper sx={{ p: 3, height: '100%' }}>
             <Typography variant="subtitle1" gutterBottom>
               Selected Model
             </Typography>
@@ -46,12 +47,12 @@ function FineTuneReview({ formData }) {
                 <Chip key={tag} label={tag} size="small" />
               ))}
             </Box>
-          </Paper>
+          </GlassmorphicPaper>
         </Grid>
 
         {/* Dataset Section */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+          <GlassmorphicPaper sx={{ p: 3, height: '100%' }}>
             <Typography variant="subtitle1" gutterBottom>
               Selected Dataset
             </Typography>
@@ -68,54 +69,54 @@ function FineTuneReview({ formData }) {
                 size="small"
               />
             </Box>
-          </Paper>
+          </GlassmorphicPaper>
         </Grid>
 
         {/* Dataset Split Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
+          <GlassmorphicPaper sx={{ p: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Dataset Split Configuration
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                <GlassmorphicPaper variant="paper" sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color="primary">
                     {formData.settings?.train_split}%
                   </Typography>
                   <Typography variant="subtitle2" color="textSecondary">
                     Training Data
                   </Typography>
-                </Paper>
+                </GlassmorphicPaper>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                <GlassmorphicPaper variant="paper" sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color="primary">
                     {formData.settings?.validation_split}%
                   </Typography>
                   <Typography variant="subtitle2" color="textSecondary">
                     Validation Data
                   </Typography>
-                </Paper>
+                </GlassmorphicPaper>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                <GlassmorphicPaper variant="paper" sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color="primary">
                     {formData.settings?.test_split}%
                   </Typography>
                   <Typography variant="subtitle2" color="textSecondary">
                     Test Data
                   </Typography>
-                </Paper>
+                </GlassmorphicPaper>
               </Grid>
             </Grid>
-          </Paper>
+          </GlassmorphicPaper>
         </Grid>
 
         {/* Training Settings Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
+          <GlassmorphicPaper sx={{ p: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Training Settings
             </Typography>
@@ -174,7 +175,7 @@ function FineTuneReview({ formData }) {
                 </Grid>
               )}
             </Grid>
-          </Paper>
+          </GlassmorphicPaper>
         </Grid>
       </Grid>
 

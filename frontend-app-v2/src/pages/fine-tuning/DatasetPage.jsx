@@ -1,9 +1,10 @@
 // DatasetPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Grid, Button, Box } from '@mui/material';
+import { Grid, Button, Box, Stack, Typography, Container } from '@mui/material';
 import DatasetCard from './DatasetCard';
 import NewDatasetForm from './NewDataseForm';
 import { useNavigate } from 'react-router-dom';
+import { GlassmorphicContainer } from 'themes/GlassmorphicComponents';
 
 const DatasetPage = () => {
   const navigate = useNavigate();
@@ -43,18 +44,19 @@ const DatasetPage = () => {
     if (!dataset) return;
 
     // Update local state to show 'in-progress'
-    setDatasets(datasets.map(d => 
+    setDatasets(datasets.map(d =>
       d.id === datasetId ? { ...d, dataset_status: 'In-Progress' } : d
     ));
 
     // Replace this with your actual API call
     try {
       // Use the dataset_workflow_url for the POST request
-      const response = await fetch(dataset.dataset_workflow_url, 
-        { method: 'POST',
+      const response = await fetch(dataset.dataset_workflow_url,
+        {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
-            { 
+            {
               dataset_id: datasetId,
               systemPrompt: dataset.dataset_system_prompt,
               modelTemplate: dataset.dataset_model_template,
@@ -64,15 +66,15 @@ const DatasetPage = () => {
           )
         });
       if (!response.ok) throw new Error('Webhook invocation failed');
-      
+
       // Update local state to 'Active' if the webhook call was successful
-      setDatasets(datasets.map(d => 
+      setDatasets(datasets.map(d =>
         d.id === datasetId ? { ...d, dataset_status: 'Active' } : d
       ));
     } catch (error) {
       console.error('Launch failed:', error);
       // Update local state to show 'Failed'
-      setDatasets(datasets.map(d => 
+      setDatasets(datasets.map(d =>
         d.id === datasetId ? { ...d, dataset_status: 'Failed' } : d
       ));
     }
@@ -80,26 +82,29 @@ const DatasetPage = () => {
 
   return (
     <Box>
-      <Box mb={2}>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={() => setIsNewDatasetFormOpen(true)}
-        >
-          Create New Dataset
-        </Button>
-      </Box>
-      <Grid container spacing={3}>
-        {datasets.map((dataset) => (
-          <Grid item xs={12} sm={6} md={4} key={dataset.id}>
-            <DatasetCard 
-              dataset={dataset} 
-              onLaunch={() => handleLaunchDataset(dataset.id)}
-              onView={() => handleOnView(dataset.id)}
-            />
-          </Grid>
-        ))}
-      </Grid>
+      <Container maxWidth="xl">
+        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5} mt={5}>
+          <Typography variant="h4">Dataset</Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsNewDatasetFormOpen(true)}
+          >
+            New Dataset
+          </Button>
+        </Stack>
+        <Grid container spacing={3}>
+          {datasets.map((dataset) => (
+            <Grid item xs={12} sm={6} md={4} key={dataset.id}>
+              <DatasetCard
+                dataset={dataset}
+                onLaunch={() => handleLaunchDataset(dataset.id)}
+                onView={() => handleOnView(dataset.id)}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
       <NewDatasetForm
         open={isNewDatasetFormOpen}
         onClose={() => setIsNewDatasetFormOpen(false)}

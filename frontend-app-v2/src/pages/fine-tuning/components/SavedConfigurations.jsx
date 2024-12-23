@@ -20,6 +20,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TaskDetailsDialog from './TaskDetailsDialog';
 import { finetuneService } from '../services/finetuneService';
+import { GlassmorphicCard } from 'themes/GlassmorphicComponents';
 
 function SavedConfigurations({ savedConfigurations, onEdit, onDelete, onLaunch, loading }) {
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
@@ -51,7 +52,7 @@ function SavedConfigurations({ savedConfigurations, onEdit, onDelete, onLaunch, 
 
   return (
     <Box>
-      <TableContainer component={Paper}>
+      <GlassmorphicCard component={TableContainer} variant="card">
         <Table>
           <TableHead>
             <TableRow>
@@ -148,7 +149,7 @@ function SavedConfigurations({ savedConfigurations, onEdit, onDelete, onLaunch, 
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </GlassmorphicCard>
 
       <TaskDetailsDialog
         open={taskDetailsOpen}
