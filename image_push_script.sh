@@ -5,8 +5,7 @@ export AWS_REGION="us-east-1"
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 # Array of images
-#IMAGES=("workflow-engine" "product-api" "frontend-app")
-IMAGES=("frontend-app")
+IMAGES=("workflow-engine" "product-api" "frontend-app")
 # Build images using docker compose
 echo "Building images using docker compose..."
 docker compose build
