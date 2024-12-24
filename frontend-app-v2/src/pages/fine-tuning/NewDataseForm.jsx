@@ -128,7 +128,7 @@ const NewDatasetForm = ({ open, onClose, onSubmit }) => {
               onChange={handleChange}
               required
             />
-            <FieldDescription>Enter the full path to your dataset files on your local machine.</FieldDescription>
+            <FieldDescription>Enter only the folder name which contains the documents. Folder should reside in $HOME/workspace/file_share folder.</FieldDescription>
           </>
         )}
 

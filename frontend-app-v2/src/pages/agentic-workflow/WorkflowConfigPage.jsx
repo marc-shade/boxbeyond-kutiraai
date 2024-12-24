@@ -374,7 +374,7 @@ const WorkflowConfigPage = () => {
         <Breadcrumbs>
           <Link
             component="button"
-            onClick={() => navigate('/agentic/workflow/ ')}
+            onClick={() => navigate('/agentic/workflow/')}
             underline="hover"
           >
             Workflows
