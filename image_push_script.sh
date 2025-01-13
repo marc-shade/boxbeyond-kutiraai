@@ -5,9 +5,9 @@ export AWS_REGION="us-east-1"
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 # Define service names, their corresponding Docker image names, and ECR repository names
-SERVICES=("product-api" "workflow-engine" "frontend")
-DOCKER_IMAGES=("product-product-api" "product-workflow-engine" "product-frontend")
-REPOS=("product-api" "workflow-engine" "frontend-app")
+SERVICES=("product-api" "workflow-engine" "frontend" "image-diagnosis")
+DOCKER_IMAGES=("product-product-api" "product-workflow-engine" "product-frontend" "product-image-diagnosis")
+REPOS=("product-api" "workflow-engine" "frontend-app" "image-diagnosis")
 
 # Login to ECR
 echo "Logging into ECR..."

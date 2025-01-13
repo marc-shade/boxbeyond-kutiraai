@@ -271,7 +271,7 @@ const WorkflowConfigPage = () => {
       }
 
       // Navigate back to workflow detail page on success
-      navigate(`/agentic`);
+      navigate(`/agentic/workflow`);
     } catch (error) {
       console.error('Error saving configuration:', error);
       // You might want to show an error message to the user here

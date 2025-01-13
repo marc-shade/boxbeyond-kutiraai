@@ -1,0 +1,17 @@
+flask
+Pillow==9.5.0
+opencv-python-headless
+matplotlib
+split-folders
+pyyaml
+tqdm
+requests
+scipy
+pandas
+psutil
+dill
+py-cpuinfo
+catboost
+shap
+scikit-learn==1.2.2
+numpy<2

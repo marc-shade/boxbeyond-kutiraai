@@ -157,6 +157,23 @@ services:
     networks:
       - shared-network
 
+  image-diagnosis:
+    build:
+      context: ./image_diagnosis
+      dockerfile: Dockerfile
+      network: host  # Add this to use host network during build
+      args:
+        - BUILDKIT_INLINE_CACHE=1  # Enable build caching
+    volumes:
+      - ${HOME}/workspace/file_share:/files
+    environment:
+      - INPUT_FILE_PATH=/files
+    ports:
+      - "5000:5000"
+    networks:
+      - shared-network
+    
+
 volumes:
   n8n_storage:
   postgres_n8n_storage:

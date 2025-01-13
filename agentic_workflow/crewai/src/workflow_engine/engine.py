@@ -133,7 +133,7 @@ class WorkflowEngine:
                 "output": str(output),
                 "timestamp": datetime.datetime.now().isoformat()
             })
-
+    
     def create_crew(self, workflow_name: str, inputs: Dict[str, Any], 
                    traces: Optional[List] = None) -> Tuple[Crew, WorkflowMetadata]:
         """Create a crew based on workflow configuration"""

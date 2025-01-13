@@ -55,7 +55,7 @@ services:
       - "5678:5678"
     volumes:
       - n8n_storage:/home/node/.n8n
-      - /Users/dan/workspace/file_share:/files
+      - ${HOME}/workspace/file_share:/files
       - ./n8n/backup:/backup
       - ./shared:/data/shared
     environment:
