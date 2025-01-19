@@ -17,7 +17,7 @@ import {
     InputLabel,
     MenuItem,
     Select,
-    Alert
+    Alert,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import JSONPretty from 'react-json-pretty';

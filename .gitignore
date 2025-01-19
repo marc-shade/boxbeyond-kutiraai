@@ -1,2 +1,4 @@
 .env
 fine_tune_service/logs/*.log
+.DS_Store
+*__pycache__*

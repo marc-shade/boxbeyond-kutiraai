@@ -30,7 +30,8 @@ RUN apt-get update && \
 
 # Copy application code
 COPY home.py .
-COPY classification/ classification/
+COPY lung/ lung/
+COPY breast/ breast/
 COPY runs/ runs/
 
 # Set environment variables

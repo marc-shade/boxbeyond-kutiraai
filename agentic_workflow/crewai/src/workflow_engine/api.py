@@ -1,6 +1,7 @@
 # src/workflow_engine/api.py
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, WebSocket
 from fastapi.responses import JSONResponse
+from starlette.websockets import WebSocketDisconnect
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import logging
@@ -28,6 +29,9 @@ app.add_middleware(
 
 # Create database tables if they don't exist yet.
 models.Base.metadata.create_all(bind=engine)
+
+# Global dictionary to store WebSocket connections
+active_connections = {}
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
@@ -63,6 +67,16 @@ async def health_check(db: Session = Depends(get_db)):
         )
 
     return health_status
+
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await websocket.accept()
+    active_connections[client_id] = websocket
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        del active_connections[client_id]
 
 @app.post("/workflows/", response_model=schemas.WorkflowInDB)
 def create_workflow(workflow_data: schemas.WorkflowCreate, db: Session = Depends(get_db)):
@@ -199,7 +213,6 @@ async def execute_workflow(request: WorkflowRequest, db: Session = Depends(get_d
 @app.post("/workflows/train")
 async def train_workflow(request: WorkflowRequest, db: Session = Depends(get_db)):
     try:
-        # Modify this to use proper db dependency
         engine = WorkflowEngine(db)
         traces = [] if request.trace else None
         
@@ -209,40 +222,25 @@ async def train_workflow(request: WorkflowRequest, db: Session = Depends(get_db)
                 inputs=request.inputs, 
                 traces=traces
             )
-        # Rest of your execution logic
         except WorkflowNotFoundError as e:
-            raise HTTPException(
-                status_code=404,
-                detail={"message": str(e), "details": e.details}
-            )
+            raise HTTPException(status_code=404, detail={"message": str(e), "details": e.details})
         except (ConfigurationError, ValidationError) as e:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": str(e), "details": e.details}
-            )
+            raise HTTPException(status_code=400, detail={"message": str(e), "details": e.details})
         
         try:
-            # execute the result
-            result = crew.train(n_iterations=int(request.iterations), inputs=request.inputs, filename=f"{request.workflow_name}.pkl")
+            # Modified training function to handle human interaction
+            result = await train_with_human_interaction(crew, request)
         except TimeoutError as e:
-            raise HTTPException(
-                status_code=408,
-                detail={"message": str(e), "details": e.details}
-            )
+            raise HTTPException(status_code=408, detail={"message": str(e), "details": e.details})
         except WorkflowExecutionError as e:
-            raise HTTPException(
-                status_code=500,
-                detail={"message": str(e), "details": e.details}
-            )
+            raise HTTPException(status_code=500, detail={"message": str(e), "details": e.details})
         
-        # Prepare response
         response = {
             "workflow_name": request.workflow_name,
             "workflow_version": metadata.version,
             "result": serialize_crew_output(result, "final_output")
         }
         
-        # If tracing was requested, include the traces in response
         if traces is not None:
             response["traces"] = traces
             
@@ -251,10 +249,25 @@ async def train_workflow(request: WorkflowRequest, db: Session = Depends(get_db)
         raise
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "Internal server error",
-                "details": {"error": str(e)}
-            }
-        )
+        raise HTTPException(status_code=500, detail={"message": "Internal server error", "details": {"error": str(e)}})
+    
+
+async def train_with_human_interaction(crew, request):
+    for i in range(int(request.iterations)):
+        iteration_result = crew.train(n_iterations=1, inputs=request.inputs, filename=f"{request.workflow_name}.pkl")
+        
+        # Send iteration result to the client
+        if request.client_id in active_connections:
+            await active_connections[request.client_id].send_json({
+                "type": "iteration_result",
+                "data": serialize_crew_output(iteration_result, f"iteration_{i+1}")
+            })
+        
+        # Wait for human feedback
+        if request.client_id in active_connections:
+            feedback = await active_connections[request.client_id].receive_json()
+            # Process the feedback and update the crew or training process as needed
+            # This part depends on how you want to handle the feedback in your CrewAI implementation
+    
+    # Return the final result after all iterations
+    return crew.train(n_iterations=1, inputs=request.inputs, filename=f"{request.workflow_name}.pkl")
