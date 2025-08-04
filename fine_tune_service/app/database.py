@@ -8,8 +8,8 @@ from .schemas import TaskStatus
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from parent directory
+load_dotenv(dotenv_path="../.env")
 
 class DatabaseInterface:
     def __init__(self):

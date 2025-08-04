@@ -9,6 +9,10 @@ from redis.exceptions import RedisError
 import psycopg2
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Load environment variables from parent directory
+load_dotenv(dotenv_path="../.env")
 
 app = FastAPI()
 

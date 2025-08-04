@@ -1,0 +1,327 @@
+{
+  "name": "Dataset Generator - Local Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Read Files from Disk').item.json.fileExtension }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6e60f196-9fd1-456d-8bd3-07f325bfa626",
+                    "leftValue": "={{ $('Read Files from Disk').item.json.fileExtension }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TEXT"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f9d161c5-48bd-4761-92d1-35c703a4c6e4",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -260,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "230b9c13-71c1-42a9-a6c0-77f68ee97392",
+      "name": "Extract from PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        0,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9fb09382-aa28-4e7b-b329-d478912514b9",
+              "name": "chatInput",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "01b0f8c7-28ed-4c66-bc85-6d689a742dba",
+              "name": "data",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "7bac7e92-5f2e-4f33-a3b6-52e11e05ee58",
+              "name": "=input_params",
+              "value": "={{ $('Webhook').item.json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "86e56a40-c978-4dc0-8ba9-2d357965ccbd",
+              "name": "file_name",
+              "value": "={{ $('Read Files from Disk').item.json.fileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b565cde5-68d8-4ed3-bf77-530c416285d0",
+      "name": "Merge Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        300,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  // Get the input text\n  let text = item.json.chatInput;\n  \n  // Remove any non-printable characters\n  text = text.replace(/[^\\x20-\\x7E\\n]/g, \"\");\n\n  // Remove any JSON-like structures\n  text = text.replace(/\\{[^}]*\\}/g, \"\");\n\n  // Remove multiple consecutive newlines\n  text = text.replace(/\\n{3,}/g, \"\\n\\n\");\n\n  // Trim whitespace from the beginning and end\n  text = text.trim();\n\n  // Split the text into words\n  const words = text.split(/\\s+/);\n\n  // Initialize an array to hold the chunks\n  const chunks = [];\n\n  // Split into chunks of approximately 1000 words\n  for (let i = 0; i < words.length; i += 1000) {\n    const chunk = words.slice(i, i + 1000).join(' ');\n    chunks.push(chunk);\n  }\n\n  // Set the resulting array to item.json.chatInput\n  item.json.data = chunks;\n  // set the other data that we need\n  item.json.input_params =$('Webhook').first().json.body\n}\n\n\n\nreturn $input.all();"
+      },
+      "id": "3000483b-6573-4d6a-b0de-35b70461c78c",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "304a31a4-99b0-473a-b439-7e349eb64d9a",
+        "responseMode": "lastNode",
+        "responseData": "noData",
+        "options": {}
+      },
+      "id": "7caea054-392b-45d2-a15b-5364de8cfd99",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        -60
+      ],
+      "webhookId": "304a31a4-99b0-473a-b439-7e349eb64d9a"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/files/{{ $json.body.filepath }}/*",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "id": "e304095c-dea5-42a6-b1fb-d4d5be8d0042",
+      "name": "Read Files from Disk",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "KqtnwZfiTHtPk6AX",
+          "mode": "list",
+          "cachedResultName": "Dataset Generator Sub Process"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        860,
+        120
+      ],
+      "id": "9d1c8bf7-fcf6-4335-be6d-72bf2880473a",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        280
+      ],
+      "id": "20e51e10-da5c-475d-b351-ca4f6b465675",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "id": "09bd4c6d-df8a-47fc-8f3a-b0254e6aa0b4",
+      "name": "Extract from Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from PDF": {
+      "main": [
+        [
+          {
+            "node": "Merge Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Output": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2984b74a-a533-4fda-ac97-5ccf4fbc01ca",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "aYv00JQWZJ2J0JeU",
+  "tags": []
+}

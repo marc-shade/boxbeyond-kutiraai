@@ -4,6 +4,10 @@ from .database import DatabaseInterface
 from .services.fine_tune_service import FineTuneService
 import os
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from parent directory
+load_dotenv(dotenv_path="../.env")
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +114,12 @@ def run_fine_tuning_pipeline(self, config_id):
             progress=40,
             current_step='Logging in to Hugging Face'
         )
-        return_code, stdout, stderr = fine_tune_service.login_to_huggingface(token="HUGGINGFACE_API_TOKEN_PLACEHOLDER")
+        # Get Hugging Face token from environment
+        hf_token = os.getenv("HUGGINGFACE_API_TOKEN")
+        if not hf_token:
+            raise Exception("HUGGINGFACE_API_TOKEN environment variable is required")
+
+        return_code, stdout, stderr = fine_tune_service.login_to_huggingface(token=hf_token)
         if return_code != 0:
             raise Exception(f"Huggingface login failed: {stderr}")
     
@@ -121,41 +130,76 @@ def run_fine_tuning_pipeline(self, config_id):
             progress=50,
             current_step='Starting fine-tuning'
         )
-        return_code, stdout, stderr = fine_tune_service.execute_fine_tuning(config=finetune_config)
-        if return_code != 0:
-            raise Exception(f"Fine-tuning failed: {stderr}")
 
-        # Step 4: Create Modelfile
+        # Create progress callback to update database in real-time
+        def progress_callback(progress: float, step_description: str):
+            logger.info(f"Progress update: {progress}% - {step_description}")
+            if progress is not None:
+                db.update_task_status(
+                    task_id=task_id,
+                    status='FINETUNING',
+                    progress=progress,
+                    current_step=step_description
+                )
+            else:
+                db.update_task_status(
+                    task_id=task_id,
+                    status='FINETUNING',
+                    current_step=step_description
+                )
+
+        # Save the original base model for Ollama use
+        original_base_model = finetune_config.base_model
+
+        # Use whatever model is in the database - no conversion
+        logger.info(f"Using model from database: {finetune_config.base_model}")
+        logger.info(f"Model type: {finetune_config.model_type}")
+
+        logger.info(f"Starting MLX fine-tuning with model: {finetune_config.base_model}")
+        return_code, stdout, stderr = fine_tune_service.execute_fine_tuning(
+            config=finetune_config,
+            progress_callback=progress_callback
+        )
+
+        logger.info(f"MLX fine-tuning completed with return code: {return_code}")
+        if return_code != 0:
+            # Create a more informative error message
+            error_msg = f"Fine-tuning failed with return code {return_code}"
+            if stderr:
+                # Extract meaningful error information
+                error_lines = [line.strip() for line in stderr.split('\n') if line.strip()]
+                # Look for actual error messages, not just progress output
+                actual_errors = [line for line in error_lines if any(indicator in line for indicator in
+                    ['Error:', 'Exception:', 'Failed', 'Cannot', 'RuntimeError', 'ValueError'])]
+
+                if actual_errors:
+                    error_msg += f": {'; '.join(actual_errors[-3:])}"  # Last 3 error lines
+                elif "Traceback" in stderr:
+                    error_msg += ": Python exception occurred (check logs for details)"
+                else:
+                    error_msg += f": {stderr[-500:]}"  # Last 500 chars of stderr
+
+            raise Exception(error_msg)
+        else:
+            logger.info("MLX fine-tuning completed successfully, proceeding to model creation")
+
+        # Step 4: Create Ollama-compatible model
         db.update_task_status(
             task_id=task_id,
             status='CREATING_MODEL',
             progress=90,
-            current_step='Creating Modelfile'
-        )
-        
-        return_code, stdout, stderr = fine_tune_service.create_modelfile(
-            finetune_config.model_type,
-            f"{output_dir}/adapters",
-            output_dir
-        )
-        if return_code != 0:
-            raise Exception(f"Modelfile creation failed: {stderr}")
-        
-        # Step 5: Import into Ollama
-        db.update_task_status(
-            task_id=task_id,
-            status='OLLAMA_IMPORT',
-            progress=99,
-            current_step='Importing into Ollama'
+            current_step='Creating Ollama-compatible model'
         )
 
-        # Step 5: Create Ollama model
-        return_code, stdout, stderr = fine_tune_service.execute_ollama_create(
+        return_code, stdout, stderr = fine_tune_service.create_ollama_compatible_model(
+            finetune_config.model_type,
+            f"{output_dir}/adapters",
+            output_dir,
             finetune_config.finetuned_model_name,
-            os.path.join(output_dir, 'Modelfile')
+            original_base_model  # Pass the original base model for Ollama
         )
         if return_code != 0:
-            raise Exception(f"Ollama model creation failed: {stderr}")
+            raise Exception(f"Ollama-compatible model creation failed: {stderr}")
 
         # Update final status
         db.update_task_status(
@@ -183,13 +227,31 @@ def run_fine_tuning_pipeline(self, config_id):
         }
 
     except Exception as e:
+        # Get current task status to preserve progress if available
+        try:
+            current_task = db.get_task_status(config_id)
+            current_progress = current_task.progress if current_task else 0
+            current_step = current_task.current_step if current_task else "Unknown step"
+        except:
+            current_progress = 0
+            current_step = "Unknown step"
+
+        # Create a comprehensive error message
+        error_message = f"Failed at '{current_step}': {str(e)}"
+
         db.update_task_status(
             task_id=task_id,
             status='FAILED',
-            error=str(e),
-            progress=0
+            error=error_message,
+            progress=current_progress,  # Keep the progress where it failed
+            current_step=f"Failed: {current_step}"
         )
-        
+
         # update the master table status
         db.update_finetune_status(config_id, "Failed")
+
+        # Log the full error for debugging
+        logger.error(f"Fine-tuning pipeline failed for config {config_id}: {str(e)}")
+        logger.error(f"Full traceback: ", exc_info=True)
+
         raise e

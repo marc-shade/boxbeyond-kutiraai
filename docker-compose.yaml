@@ -1,135 +1,183 @@
 
 services:
-  # Platform Services
+  # =============================================================================
+  # Platform Infrastructure Services
+  # =============================================================================
+
   postgres-n8n:
-    extends:
-      file: ./platform_services/docker-compose.yaml
-      service: postgres-n8n
+    image: postgres:16-alpine
     container_name: postgres-n8n
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${N8N_POSTGRES_USER}
       - POSTGRES_PASSWORD=${N8N_POSTGRES_PASSWORD}
       - POSTGRES_DB=${N8N_POSTGRES_DB}
+    volumes:
+      - postgres_n8n_storage:/var/lib/postgresql/data
+    ports:
+      - "${N8N_POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${N8N_POSTGRES_USER} -d ${N8N_POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - shared-network
 
   redis:
-    extends:
-      file: ./platform_services/docker-compose.yaml
-      service: redis
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - shared-network
 
   qdrant:
-    extends:
-      file: ./platform_services/docker-compose.yaml
-      service: qdrant
+    image: qdrant/qdrant
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
     networks:
       - shared-network
 
   n8n:
-    extends:
-      file: ./platform_services/docker-compose.yaml
-      service: n8n
+    image: n8nio/n8n:latest
     container_name: n8n-processflow
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
     environment:
+      - DB_TYPE=${N8N_POSTGRES_DB_TYPE:-postgresdb}
       - DB_POSTGRESDB_HOST=postgres-n8n
       - DB_POSTGRESDB_USER=${N8N_POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=${N8N_POSTGRES_PASSWORD}
       - DB_POSTGRESDB_DATABASE=${N8N_POSTGRES_DB}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
-    networks:
-      - shared-network
-
-  n8n-import:
-    extends:
-      file: ./platform_services/docker-compose.yaml
-      service: n8n-import
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    volumes:
+      - n8n_storage:/home/node/.n8n
+      - ${FILE_SHARE_PATH:-${HOME}/workspace/file_share}:/files
+      - ./platform_services/n8n/backup:/backup
+      - ./platform_services/shared:/data/shared
+    depends_on:
+      postgres-n8n:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - shared-network
 
   # Agentic Workflow
+  # =============================================================================
+  # Workflow Engine Services
+  # =============================================================================
+
   postgres-workflow:
-    extends:
-      file: ./agentic_workflow/crewai/docker-compose.yaml
-      service: postgres-workflow
+    image: postgres:16-alpine
     container_name: postgres-workflow
+    restart: unless-stopped
     ports:
-      - "${WORKFLOW_POSTGRES_PORT}:${WORKFLOW_POSTGRES_PORT}"
+      - "${WORKFLOW_POSTGRES_PORT:-5435}:5432"
     environment:
       - POSTGRES_USER=${WORKFLOW_POSTGRES_USER}
       - POSTGRES_PASSWORD=${WORKFLOW_POSTGRES_PASSWORD}
       - POSTGRES_DB=${WORKFLOW_POSTGRES_DB}
-      - PGPORT=${WORKFLOW_POSTGRES_PORT}
-    command: -p ${WORKFLOW_POSTGRES_PORT}
+    volumes:
+      - postgres_workflow_storage:/var/lib/postgresql/data
+      - ./workflow_engine/db/ini/workflow:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WORKFLOW_POSTGRES_USER} -d ${WORKFLOW_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - shared-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${WORKFLOW_POSTGRES_USER} -d ${WORKFLOW_POSTGRES_DB} -p ${WORKFLOW_POSTGRES_PORT}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   workflow-engine:
-    extends:
-      file: ./agentic_workflow/crewai/docker-compose.yaml
-      service: workflow-engine
+    build:
+      context: ./workflow_engine
+      dockerfile: Dockerfile
     container_name: workflow-engine
-    networks:
-      - shared-network
+    ports:
+      - "8100:8100"
+    volumes:
+      - ./workflow_engine/src:/app/src
     environment:
       - DB_USER=${WORKFLOW_POSTGRES_USER}
       - DB_PASSWORD=${WORKFLOW_POSTGRES_PASSWORD}
+      - DB_HOST=postgres-workflow
+      - DB_PORT=5432
       - DB_NAME=${WORKFLOW_POSTGRES_DB}
-      - DB_PORT=${WORKFLOW_POSTGRES_PORT}
-      - ENVIRONMENT=${ENVIRONMENT}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_MODEL=${LLM_MODEL}
-      - LLM_BASE_URL=${LLM_BASE_URL}
-      - MAX_WORKERS=${MAX_WORKERS}
-      - TIMEOUT=${TIMEOUT}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LLM_API_KEY=${LLM_API_KEY:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-llama3.1:8b}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:11434}
+      - MAX_WORKERS=${MAX_WORKERS:-4}
+      - TIMEOUT=${TIMEOUT:-300}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
     depends_on:
       postgres-workflow:
         condition: service_healthy
+    networks:
+      - shared-network
+
+  # =============================================================================
+  # Product API Services
+  # =============================================================================
 
   postgres-product:
-    extends:
-      file: ./product-backend-app/docker-compose.yaml
-      service: postgres-product
+    image: postgres:16-alpine
     container_name: postgres-product
+    restart: unless-stopped
     ports:
-      - "${PRODUCT_POSTGRES_PORT}:${PRODUCT_POSTGRES_PORT}"
+      - "${PRODUCT_POSTGRES_PORT:-5434}:5432"
     environment:
       - POSTGRES_USER=${PRODUCT_POSTGRES_USER}
       - POSTGRES_PASSWORD=${PRODUCT_POSTGRES_PASSWORD}
       - POSTGRES_DB=${PRODUCT_POSTGRES_DB}
-      - PGPORT=${PRODUCT_POSTGRES_PORT}
-    command: -p ${PRODUCT_POSTGRES_PORT}
+    volumes:
+      - postgres_product_storage:/var/lib/postgresql/data
+      - ./product_api/db/ini/product:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PRODUCT_POSTGRES_USER} -d ${PRODUCT_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - shared-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PRODUCT_POSTGRES_USER} -d ${PRODUCT_POSTGRES_DB} -p ${PRODUCT_POSTGRES_PORT}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   product-api:
-    extends:
-      file: ./product-backend-app/docker-compose.yaml
-      service: product-api
+    build:
+      context: ./product_api
+      dockerfile: Dockerfile
     container_name: product-api
     ports:
       - "8200:8200"
-    networks:
-      - shared-network
+    volumes:
+      - ./product_api/app:/app/app
     environment:
-      - DB_HOST=${PRODUCT_POSTGRES_HOST}
-      - DB_NAME=${PRODUCT_POSTGRES_DB}
       - DB_USER=${PRODUCT_POSTGRES_USER}
       - DB_PASSWORD=${PRODUCT_POSTGRES_PASSWORD}
-      - DB_PORT=${PRODUCT_POSTGRES_PORT}
+      - DB_HOST=postgres-product
+      - DB_PORT=5432
+      - DB_NAME=${PRODUCT_POSTGRES_DB}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - HUGGINGFACE_API_TOKEN=${HUGGINGFACE_API_TOKEN}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
       interval: 30s
@@ -139,50 +187,43 @@ services:
     depends_on:
       postgres-product:
         condition: service_healthy
+    networks:
+      - shared-network
+
+  # =============================================================================
+  # Frontend & Application Services
+  # =============================================================================
 
   frontend:
     build:
-      context: ./frontend-app-v2
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_APP_VERSION: v1.3.0
         GENERATE_SOURCEMAP: "false"
-        PUBLIC_URL: https://mantisdashboard.io/free
-        VITE_APP_BASE_NAME: /free
+        PUBLIC_URL: /
+        VITE_APP_BASE_NAME: /
     container_name: frontend-app
     ports:
       - "3000:3000"
     environment:
-      - VITE_APP_API_URL=http://localhost/api
+      - VITE_APP_API_URL=http://localhost:8200/api
     networks:
       - shared-network
 
-  image-diagnosis:
-    build:
-      context: ./image_diagnosis
-      dockerfile: Dockerfile
-      network: host  # Add this to use host network during build
-      args:
-        - BUILDKIT_INLINE_CACHE=1  # Enable build caching
-    volumes:
-      - ${HOME}/workspace/file_share:/files
-    environment:
-      - INPUT_FILE_PATH=/files
-    ports:
-      - "5000:5000"
-    networks:
-      - shared-network
+
     
+# =============================================================================
+# Networks & Volumes
+# =============================================================================
+
+networks:
+  shared-network:
+    driver: bridge
 
 volumes:
   n8n_storage:
   postgres_n8n_storage:
-  postgres_agentic_storage:
+  postgres_workflow_storage:
   postgres_product_storage:
   qdrant_storage:
-
-networks:
-  shared-network:
-    name: shared-network
-    driver: bridge
-    external: true

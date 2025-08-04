@@ -7,4 +7,7 @@ sqlalchemy
 psycopg2-binary
 alembic
 python-dotenv
-huggingface_hub
+huggingface_hub[hf_transfer]
+sentencepiece
+transformers
+torch

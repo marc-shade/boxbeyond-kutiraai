@@ -1,0 +1,95 @@
+{
+  "name": "Agentic Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -20
+      ],
+      "id": "83e5298f-a8cb-4827-8095-4dbfd72040ee",
+      "name": "When chat message received",
+      "webhookId": "5cfabd7f-21ed-4c63-8578-536d1ee2e533"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8100/workflows/execute",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=    {\n        \"workflow_name\": \"Research Organization\",\n        \"inputs\": {\n            \"organization_name\": \"{{ $json.chatInput }}\"\n        },\n        \"trace\": false\n    }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -420,
+        -20
+      ],
+      "id": "e1cb611f-7e27-4758-9204-65b7be073db6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9be061b1-6982-40d8-8989-d58b887dc400",
+              "name": "",
+              "value": "={{ $json.result.final_output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -200,
+        -20
+      ],
+      "id": "4ecec90d-0d62-47b5-869c-06115f3d502e",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a0b8a8ef-0899-4482-97a9-322a20fb849a",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "QsJom0mFqEnTCxYV",
+  "tags": []
+}

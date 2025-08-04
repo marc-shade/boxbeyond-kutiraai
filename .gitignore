@@ -1,4 +1,32 @@
+# Environment files
 .env
+
+# Log files
+logs/*.log
+logs/*.pid
 fine_tune_service/logs/*.log
+
+# System files
 .DS_Store
+
+# Python cache
 *__pycache__*
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Virtual environments
+fine_tune_service/fine_tune_env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+
+# Node modules (if any)
+node_modules/
