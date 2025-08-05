@@ -9,7 +9,7 @@ A comprehensive, open-source platform that enables developers and enterprises to
 - **🔒 Privacy-First**: Complete local deployment - your data never leaves your infrastructure
 - **⚡ Apple Silicon Optimized**: Native MLX integration for blazing-fast performance on Apple Silicon
 - **🎯 Advanced Fine-tuning**: Support for LLaMA, Mistral, and custom models with intelligent optimization
-- **🔄 Intelligent Workflows**: YAML-based workflow engine with agent orchestration
+- **🔄 Intelligent Workflows**: CrewAI-based multi-agent orchestration with n8n process automation
 - **📊 Real-time Monitoring**: Comprehensive progress tracking and performance metrics
 - **🚀 Fast Downloads**: Integrated hf_transfer for 3-5x faster model downloads
 - **🔧 Production Ready**: Microservices architecture with Docker containerization
@@ -123,237 +123,238 @@ open http://localhost:3000
 
 ### High-Level Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Product API   │    │ Workflow Engine │
-│   (React)       │◄──►│   (FastAPI)     │◄──►│   (Python)      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Fine-tune       │    │   PostgreSQL    │    │     Redis       │
-│ Service         │    │   Database      │    │    Cache        │
-│ (MLX + Celery)  │    └─────────────────┘    └─────────────────┘
-└─────────────────┘              │                       │
-         │                       ▼                       ▼
-         ▼              ┌─────────────────┐    ┌─────────────────┐
-┌─────────────────┐    │     Ollama      │    │   File Storage  │
-│      MLX        │    │  Model Server   │    │   (Local/S3)    │
-│   Framework     │    └─────────────────┘    └─────────────────┘
-└─────────────────┘
+```mermaid
+graph TB
+    %% User Interface Layer
+    subgraph "Frontend Layer"
+        UI[React Frontend<br/>Port: 3000]
+    end
+
+    %% API Gateway Layer
+    subgraph "API Services Layer"
+        PA[Product API<br/>Port: 8200<br/>FastAPI]
+        FTS[Fine-tune Service<br/>Port: 8400<br/>FastAPI + Celery]
+        WE[Workflow Engine<br/>Port: 8100<br/>FastAPI + CrewAI]
+        N8N[n8n Workflow<br/>Port: 5678<br/>Process Automation]
+    end
+
+    %% Data Layer
+    subgraph "Data Storage Layer"
+        PDB[(Product DB<br/>PostgreSQL<br/>Port: 5434)]
+        WDB[(Workflow DB<br/>PostgreSQL<br/>Port: 5435)]
+        NDB[(n8n DB<br/>PostgreSQL<br/>Port: 5432)]
+        REDIS[(Redis<br/>Port: 6379<br/>Task Queue)]
+        QDRANT[(Qdrant<br/>Port: 6333<br/>Vector DB)]
+    end
+
+    %% External Services
+    subgraph "External AI Services"
+        OLLAMA[Ollama<br/>Port: 11434<br/>Local LLM Server]
+        HF[Hugging Face<br/>Model Hub & API]
+        MLX[MLX Framework<br/>Apple Silicon ML]
+    end
+
+    %% File Storage
+    subgraph "File Storage"
+        FS[Shared File Storage<br/>Docker Volumes]
+    end
+
+    %% Connections
+    UI --> PA
+    UI --> FTS
+    UI --> WE
+    UI --> N8N
+
+    PA --> PDB
+    FTS --> PDB
+    FTS --> REDIS
+    WE --> WDB
+    N8N --> NDB
+
+    FTS --> MLX
+    FTS --> HF
+    WE --> OLLAMA
+    PA --> HF
+
+    N8N --> FS
+    FTS --> FS
 ```
 
-### Component Overview
+### Service Architecture
 
-- **Frontend**: React-based UI for model management and workflow creation
-- **Product API**: Central FastAPI service handling requests and orchestration
-- **Fine-tune Service**: Specialized service for MLX-based model fine-tuning
-- **Workflow Engine**: YAML-based workflow execution with agent support
-- **Databases**: PostgreSQL for persistent data, Redis for caching and queues
-- **Model Server**: Ollama for model serving and inference
+#### **Frontend Layer**
+- **Technology**: React 18 + Vite + Material-UI
+- **Port**: 3000
+- **Features**: Fine-tuning UI, dataset management, workflow builder, real-time monitoring
+
+#### **API Services Layer**
+
+**1. Product API (Port: 8200)**
+- **Technology**: FastAPI + SQLAlchemy + PostgreSQL
+- **Purpose**: Core platform data management
+- **Features**: Dataset CRUD, fine-tuning configs, model metadata, HuggingFace proxy
+
+**2. Fine-tune Service (Port: 8400)**
+- **Technology**: FastAPI + Celery + Redis + MLX
+- **Purpose**: AI model fine-tuning pipeline
+- **Features**: MLX fine-tuning, async processing, progress tracking, Ollama integration
+
+**3. Workflow Engine (Port: 8100)**
+- **Technology**: FastAPI + CrewAI + LangChain
+- **Purpose**: Agentic AI workflow orchestration
+- **Features**: Multi-agent teams, dynamic workflows, LLM integration, WebSocket updates
+
+**4. n8n Workflow (Port: 5678)**
+- **Technology**: n8n + Node.js
+- **Purpose**: Process automation and integration
+- **Features**: Visual workflow builder, 200+ integrations, data processing pipelines
 
 ### Technology Stack
 
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **Backend**: FastAPI, Python, SQLAlchemy
-- **ML Framework**: MLX (Apple Silicon), Transformers, PyTorch
-- **Databases**: PostgreSQL, Redis
-- **Queue System**: Celery
-- **Containerization**: Docker, Docker Compose
-- **Model Serving**: Ollama
-- **File Transfer**: hf_transfer for optimized downloads
+#### **Backend Technologies**
+- **Python 3.12**: Core backend language
+- **FastAPI**: High-performance API framework
+- **SQLAlchemy**: Database ORM
+- **Celery**: Distributed task queue
+- **CrewAI**: Multi-agent AI framework
+- **MLX**: Apple Silicon ML framework
 
-### Data Flow
+#### **Frontend Technologies**
+- **React 18**: Modern UI framework
+- **Vite**: Fast build tool
+- **Material-UI**: Component library
+- **WebSocket**: Real-time communication
 
-1. **User uploads dataset** → Frontend → Product API → Database
-2. **Fine-tuning initiated** → Celery queue → Fine-tune Service → MLX
-3. **Model training** → Progress updates → WebSocket → Frontend
-4. **Model deployment** → Ollama → Available for inference
-5. **Workflow execution** → Workflow Engine → Model inference → Results
+#### **Infrastructure**
+- **Docker**: Containerization
+- **PostgreSQL**: Primary database
+- **Redis**: Caching and task queue
+- **Qdrant**: Vector database
+- **Ollama**: Local LLM server
+
+#### **AI/ML Stack**
+- **Ollama**: Local LLM server
+- **Hugging Face**: Model hub and API
+- **MLX**: Apple Silicon optimization
+- **LangChain**: LLM application framework
+- **LoRA**: Efficient fine-tuning technique
+
+### 🔌 Port Configuration
+
+| Service | Port | Protocol | Purpose |
+|---------|------|----------|---------|
+| Frontend | 3000 | HTTP | React development server |
+| Product API | 8200 | HTTP | Core API services |
+| Fine-tune Service | 8400 | HTTP | Fine-tuning operations |
+| Workflow Engine | 8100 | HTTP/WS | Agent workflows |
+| n8n | 5678 | HTTP | Process automation |
+| Ollama | 11434 | HTTP | Local LLM inference |
+| Product DB | 5434 | TCP | PostgreSQL database |
+| Workflow DB | 5435 | TCP | PostgreSQL database |
+| n8n DB | 5432 | TCP | PostgreSQL database |
+| Redis | 6379 | TCP | Task queue |
+| Qdrant | 6333 | HTTP | Vector database |
+
+### Data Flow Architecture
+
+#### **Fine-tuning Pipeline**
+```
+Dataset Upload → Product API → Database Storage →
+Fine-tune Service → MLX Processing → Adapter Creation →
+Ollama Model Registration → UI Update
+```
+
+#### **Workflow Execution**
+```
+Workflow Definition → Workflow Engine → CrewAI Agents →
+Ollama LLM → Task Execution → Results Storage →
+Real-time Updates
+```
+
+#### **Process Automation**
+```
+Trigger Event → n8n Workflow → External APIs →
+Data Processing → Database Update → Notification
+```
 
 ---
 
 ## 🔧 Installation & Setup
 
-### System Requirements
+### Prerequisites
 
-#### Minimum Requirements
-- **OS**: macOS 12.0+ (Apple Silicon recommended)
-- **RAM**: 16GB
-- **Storage**: 50GB free space
-- **CPU**: Apple M1/M2/M3 (Intel supported but slower)
+- **Hardware**: Apple Silicon Mac (M1/M2/M3) recommended for optimal performance
+- **Software**:
+  - [Ollama](https://ollama.ai/download)
+  - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+  - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html)
+  - [Node.js and npm](https://nodejs.org/en/download/package-manager)
+- **Memory**: 16GB RAM minimum, 32GB+ recommended for large models
+- **Storage**: 50GB+ free space for models and data
 
-#### Recommended Requirements
-- **OS**: macOS 13.0+ with Apple Silicon
-- **RAM**: 32GB+
-- **Storage**: 100GB+ SSD
-- **CPU**: Apple M2 Pro/Max or M3
-
-### Detailed Installation
-
-#### 1. Install Prerequisites
+### Quick Start
 
 ```bash
-# Install Homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install required tools
-brew install node
-brew install --cask docker
-brew install --cask miniconda
-
-# Install Ollama
-curl -fsSL https://ollama.ai/install.sh | sh
-```
-
-#### 2. Clone and Setup
-
-```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
 cd product-platform_0.0.1
 
-# Make scripts executable
-chmod +x *.sh
-
-# Setup environment
+# Configure environment
 cp .env.example .env
-```
+# Edit .env file with your configuration
+# Required: Set HUGGINGFACE_API_TOKEN and database passwords
 
-#### 3. Configure Environment Variables
-
-Edit `.env` file with your settings:
-
-```bash
-# Database Configuration
-POSTGRES_DB=product_platform
-POSTGRES_USER=your_username
-POSTGRES_PASSWORD=your_secure_password
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
-
-# Hugging Face Token (required for model downloads)
-HUGGINGFACE_API_TOKEN=HUGGINGFACE_API_TOKEN_PLACEHOLDER
-
-# Fine-tuning Service
-FINE_TUNE_SERVICE_URL=http://localhost:8400
-
-# Ollama Configuration
-OLLAMA_BASE_URL=http://localhost:11434
-```
-
-#### 4. Start Services
-
-```bash
 # Start all services
 ./start.sh
-
-# Or start manually
-docker compose up -d --build
-cd fine_tune_service && ./start_fine_tune.sh
-```
-
-#### 5. Verify Installation
-
-```bash
-# Check service status
-./status.sh
 
 # Access the platform
 open http://localhost:3000
 ```
 
-### Manual Setup (Advanced)
+### Manual Setup (Alternative)
 
-For development or custom configurations:
+If you prefer manual setup:
 
-#### Backend Services
+1. **Start Docker Services**
+   ```bash
+   docker compose up -d --build
+   ```
 
-```bash
-# Start databases
-docker compose up -d postgres redis
+2. **Setup Fine-tuning Service** (Apple Silicon only)
+   ```bash
+   cd fine_tune_service
+   python3 -m venv fine_tune_env
+   source fine_tune_env/bin/activate
+   pip install -r requirements.txt
 
-# Setup Python environment
-conda create -n platform python=3.11
-conda activate platform
-pip install -r requirements.txt
+   # Start API service
+   uvicorn app.main:app --host 0.0.0.0 --port 8400
 
-# Start Product API
-cd product-api
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
+   # In another terminal, start Celery worker
+   celery -A app.celery_app.celery_app worker --loglevel=INFO
+   ```
 
-#### Fine-tuning Service
+### Management Commands
 
-```bash
-cd fine_tune_service
-
-# Create virtual environment
-python3 -m venv fine_tune_env
-source fine_tune_env/bin/activate
-pip install -r requirements.txt
-
-# Start API service
-uvicorn app.main:app --host 0.0.0.0 --port 8400
-
-# Start Celery worker (in another terminal)
-celery -A app.celery_app.celery_app worker --loglevel=INFO
-```
-
-#### Frontend
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-### Troubleshooting Installation
-
-#### Common Issues
-
-1. **Docker not starting**: Ensure Docker Desktop is running
-2. **Port conflicts**: Check if ports 3000, 8000, 8400, 5432, 6379, 11434 are available
-3. **MLX installation fails**: Ensure you're on Apple Silicon with macOS 12.0+
-4. **Permission denied**: Run `chmod +x *.sh` to make scripts executable
-
-#### Verification Commands
-
-```bash
-# Check Docker services
-docker ps
-
-# Check Ollama
-ollama list
-
-# Check Python environment
-python --version
-pip list | grep mlx
-
-# Check ports
-lsof -i :3000,:8000,:8400,:5432,:6379,:11434
-```
+- **Check Status**: `./status.sh`
+- **Stop Fine-tuning**: `./stop_fine_tune.sh`
+- **Stop All Services**: `docker compose down`
 
 ---
 
 ## 📚 Core Components
 
-### 5.1 Fine-tuning Service
+### Fine-tuning Service
 
-The fine-tuning service is the heart of the platform, providing enterprise-grade model training capabilities with Apple Silicon optimization.
+The fine-tuning service provides enterprise-grade model training capabilities with Apple Silicon optimization.
 
 #### Key Features
-
 - **MLX Integration**: Native Apple Silicon acceleration for 3-5x faster training
 - **Model Support**: LLaMA 3.2, LLaMA 3.1, Mistral 7B, and custom models
-- **Intelligent Fallbacks**: Automatic MLX model conversion and compatibility checking
-- **Fast Downloads**: hf_transfer integration for rapid model downloads
 - **Progress Tracking**: Real-time training metrics and progress monitoring
 - **Error Recovery**: Robust error handling with detailed diagnostics
 
 #### Supported Models
-
 | Model Family | MLX Model | Size | Recommended Use |
 |--------------|-----------|------|-----------------|
 | LLaMA 3.2 | `mlx-community/Llama-3.2-1B-Instruct-4bit` | 1B | Fast training, testing |
@@ -361,89 +362,37 @@ The fine-tuning service is the heart of the platform, providing enterprise-grade
 | LLaMA 3.1 | `mlx-community/Llama-3.1-8B-Instruct-4bit` | 8B | High quality results |
 | Mistral | `mlx-community/Mistral-7B-Instruct-v0.3-4bit` | 7B | Efficient inference |
 
-#### Training Configuration
+### Workflow Engine
 
-```python
-{
-    "model_type": "llama3.2",
-    "base_model": "mlx-community/Llama-3.2-1B-Instruct-4bit",
-    "batch_size": 1,
-    "learning_rate": 1e-5,
-    "num_iterations": 100,
-    "steps_per_eval": 10,
-    "num_layers": 16,
-    "adapter_path": "/path/to/adapters"
-}
-```
-
-#### Performance Optimizations
-
-- **Automatic Batch Size**: Intelligent batch size selection based on available memory
-- **Memory Management**: Efficient memory usage with gradient checkpointing
-- **Caching**: Model and tokenizer caching for faster subsequent runs
-- **Parallel Processing**: Multi-core utilization for data preprocessing
-
-### 5.2 Workflow Engine
-
-YAML-based workflow system for creating complex AI-powered automation.
+CrewAI-based workflow system for creating complex AI-powered automation.
 
 #### Features
+- **Multi-Agent Teams**: Multiple AI agents working together
+- **Dynamic Workflows**: Runtime workflow generation and execution
+- **LLM Integration**: Direct integration with Ollama models
+- **Real-time Updates**: WebSocket-based progress monitoring
 
-- **YAML Configuration**: Human-readable workflow definitions
-- **Agent Orchestration**: Multiple AI agents working together
-- **Task Management**: Sequential and parallel task execution
-- **Error Handling**: Robust error recovery and retry mechanisms
-- **State Management**: Persistent workflow state and checkpointing
+### n8n Process Automation
 
-#### Example Workflow
+Visual workflow builder for process automation and integration.
 
-```yaml
-name: "Document Analysis Workflow"
-description: "Analyze documents and extract insights"
+#### Features
+- **Visual Builder**: Drag-and-drop workflow creation
+- **200+ Integrations**: Pre-built connectors for popular services
+- **Data Processing**: ETL pipelines and data transformation
+- **Scheduled Workflows**: Time-based and event-driven automation
 
-agents:
-  - name: "document_analyzer"
-    model: "llama3.2-finetuned"
-    role: "Document analysis specialist"
-
-  - name: "summarizer"
-    model: "mistral-7b"
-    role: "Content summarization expert"
-
-tasks:
-  - name: "extract_content"
-    agent: "document_analyzer"
-    input: "{{ document_path }}"
-    output: "extracted_content"
-
-  - name: "generate_summary"
-    agent: "summarizer"
-    input: "{{ extracted_content }}"
-    output: "summary"
-    depends_on: ["extract_content"]
-
-outputs:
-  - name: "final_report"
-    template: "analysis_report.md"
-    data:
-      content: "{{ extracted_content }}"
-      summary: "{{ summary }}"
-```
-
-### 5.3 Model Management
+### Model Management
 
 Comprehensive model lifecycle management with Ollama integration.
 
 #### Features
-
 - **Model Registry**: Centralized model storage and versioning
 - **Dynamic Loading**: On-demand model loading and unloading
 - **Health Monitoring**: Model performance and availability tracking
-- **Version Control**: Model versioning and rollback capabilities
 - **Template Support**: Pre-configured model templates
 
 #### Model Templates
-
 ```python
 # LLaMA 3.2 Template
 LLAMA_32_TEMPLATE = """
@@ -461,40 +410,13 @@ MISTRAL_TEMPLATE = """
 """
 ```
 
-### 5.4 Data Management
-
-Secure and efficient data handling with privacy-first design.
-
-#### Features
-
-- **Local Storage**: All data remains on your infrastructure
-- **Format Support**: JSONL, CSV, TXT, and custom formats
-- **Data Validation**: Automatic format checking and validation
-- **Preprocessing**: Data cleaning and transformation pipelines
-- **Splitting**: Automatic train/validation/test splits
-
-#### Data Pipeline
-
-```python
-# Data processing pipeline
-1. Upload → 2. Validate → 3. Transform → 4. Split → 5. Cache
-```
-
-#### Supported Formats
-
-- **JSONL**: `{"text": "training example"}`
-- **CSV**: Structured data with text columns
-- **TXT**: Plain text files
-- **Custom**: User-defined formats with preprocessing
-
 ---
 
 ## 🎯 User Guides
 
-### 6.1 Fine-tuning Guide
+### Fine-tuning Guide
 
 #### Preparing Your Dataset
-
 1. **Format Requirements**
    ```jsonl
    {"text": "Question: What is AI? Answer: Artificial Intelligence is..."}
@@ -505,24 +427,15 @@ Secure and efficient data handling with privacy-first design.
    - Minimum 10 examples, recommended 100+
    - Consistent formatting across examples
    - Balanced representation of use cases
-   - Clear question-answer pairs
-
-3. **Data Splitting**
-   - Training: 70-80% of data
-   - Validation: 10-15% of data
-   - Test: 10-15% of data
 
 #### Choosing Models
-
 | Use Case | Recommended Model | Reasoning |
 |----------|------------------|-----------|
 | Quick prototyping | Llama-3.2-1B | Fast training, good for testing |
 | Production deployment | Llama-3.2-3B | Balanced speed and quality |
 | High-quality results | Llama-3.1-8B | Best performance, slower training |
-| Efficient inference | Mistral-7B | Good performance/speed ratio |
 
 #### Configuration Best Practices
-
 ```python
 # For small datasets (< 100 examples)
 {
@@ -539,353 +452,109 @@ Secure and efficient data handling with privacy-first design.
     "num_iterations": 100,
     "num_layers": 16
 }
-
-# For large datasets (1000+ examples)
-{
-    "batch_size": 4,
-    "learning_rate": 5e-6,
-    "num_iterations": 200,
-    "num_layers": 32
-}
 ```
 
-#### Monitoring Training
+### Workflow Creation
 
-- **Loss Curves**: Watch for decreasing training loss
-- **Validation Metrics**: Monitor validation performance
-- **Overfitting Signs**: Training loss decreases but validation loss increases
-- **Early Stopping**: Stop training when validation loss plateaus
-
-### 6.2 Workflow Creation
-
-#### Workflow Design Principles
-
-1. **Modularity**: Break complex tasks into smaller, reusable components
-2. **Error Handling**: Plan for failures and implement recovery strategies
-3. **Scalability**: Design workflows that can handle varying data volumes
-4. **Monitoring**: Include logging and progress tracking
-
-#### YAML Configuration Guide
-
+#### Basic Workflow Structure
 ```yaml
-# Basic workflow structure
-name: "workflow_name"
-description: "Brief description"
-version: "1.0"
+name: "Document Analysis Workflow"
+description: "Analyze documents and extract insights"
 
-# Define agents
 agents:
-  - name: "agent_id"
-    model: "model_name"
-    role: "agent_description"
-    parameters:
-      temperature: 0.7
-      max_tokens: 1000
+  - name: "document_analyzer"
+    model: "llama3.2-finetuned"
+    role: "Document analysis specialist"
 
-# Define tasks
 tasks:
-  - name: "task_id"
-    agent: "agent_id"
-    input: "input_specification"
-    output: "output_variable"
-    depends_on: ["prerequisite_tasks"]
-    retry_count: 3
-    timeout: 300
-
-# Define outputs
-outputs:
-  - name: "output_name"
-    format: "json|text|file"
-    destination: "output_path"
+  - name: "extract_content"
+    agent: "document_analyzer"
+    input: "{{ document_path }}"
+    output: "extracted_content"
 ```
 
-#### Advanced Features
+### Model Deployment
 
-- **Conditional Execution**: Tasks that run based on conditions
-- **Parallel Processing**: Tasks that run simultaneously
-- **Dynamic Inputs**: Runtime input generation
-- **Custom Functions**: User-defined processing functions
-
-### 6.3 Model Deployment
-
-#### Local Deployment
-
-1. **Ollama Integration**
-   ```bash
-   # Deploy fine-tuned model
-   ollama create my-model -f Modelfile
-   ollama run my-model
-   ```
-
-2. **API Access**
-   ```python
-   import requests
-
-   response = requests.post("http://localhost:11434/api/generate", {
-       "model": "my-model",
-       "prompt": "Your question here"
-   })
-   ```
-
-#### Integration Options
-
-- **REST API**: Direct HTTP API access
-- **Python SDK**: Native Python integration
-- **WebSocket**: Real-time streaming responses
-- **CLI Tools**: Command-line interface
-
-#### Performance Tuning
-
-- **Model Quantization**: Reduce model size for faster inference
-- **Batch Processing**: Process multiple requests together
-- **Caching**: Cache frequent responses
-- **Load Balancing**: Distribute requests across multiple instances
-
----
-
-## 🔌 API Documentation
-
-### REST API Endpoints
-
-#### Fine-tuning API
-
-```http
-POST /api/v1/finetune
-Content-Type: application/json
-
-{
-  "model_type": "llama3.2",
-  "dataset_path": "/path/to/dataset.jsonl",
-  "config": {
-    "batch_size": 1,
-    "learning_rate": 1e-5,
-    "num_iterations": 100
-  }
-}
-```
-
-#### Model Management API
-
-```http
-# List available models
-GET /api/v1/models
-
-# Get model details
-GET /api/v1/models/{model_id}
-
-# Deploy model
-POST /api/v1/models/{model_id}/deploy
-
-# Delete model
-DELETE /api/v1/models/{model_id}
-```
-
-#### Workflow API
-
-```http
-# Create workflow
-POST /api/v1/workflows
-Content-Type: application/yaml
-
-# Execute workflow
-POST /api/v1/workflows/{workflow_id}/execute
-
-# Get workflow status
-GET /api/v1/workflows/{workflow_id}/status
-```
-
-### WebSocket API
-
-```javascript
-// Connect to progress updates
-const ws = new WebSocket('ws://localhost:8000/ws/finetune/{job_id}');
-
-ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    console.log('Progress:', data.progress);
-    console.log('Status:', data.status);
-};
-```
-
-### Python SDK
-
-```python
-from platform_sdk import PlatformClient
-
-# Initialize client
-client = PlatformClient(base_url="http://localhost:8000")
-
-# Start fine-tuning
-job = client.finetune.create(
-    model_type="llama3.2",
-    dataset_path="./data/training.jsonl",
-    config={
-        "batch_size": 1,
-        "learning_rate": 1e-5,
-        "num_iterations": 100
-    }
-)
-
-# Monitor progress
-for update in client.finetune.stream_progress(job.id):
-    print(f"Progress: {update.progress}%")
-```
-
----
-
-## 🛠️ Developer Guide
-
-### Development Environment Setup
-
+#### Ollama Integration
 ```bash
-# Clone repository
-git clone <repo-url>
+# Deploy fine-tuned model
+ollama create my-model -f Modelfile
+ollama run my-model
+```
+
+#### API Access
+```python
+import requests
+
+response = requests.post("http://localhost:11434/api/generate", {
+    "model": "my-model",
+    "prompt": "Your question here"
+})
+```
+
+---
+
+## 🔧 Development
+
+### Development Setup
+
+#### Prerequisites
+- Python 3.12+
+- Node.js 18+
+- Docker Desktop
+- Ollama
+
+#### Quick Development Setup
+```bash
+# Clone and setup
+git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
 cd product-platform_0.0.1
 
-# Setup development environment
-python -m venv dev-env
-source dev-env/bin/activate
-pip install -r requirements-dev.txt
+# Start databases
+docker compose up -d postgres redis
 
-# Install pre-commit hooks
-pre-commit install
+# Setup Python environment
+conda create -n platform python=3.12
+conda activate platform
+pip install -r requirements.txt
 
-# Run tests
-pytest tests/
+# Setup frontend
+cd frontend && npm install
 ```
 
-### Code Structure
+### API Documentation
 
+#### Core API Endpoints
 ```
-product-platform_0.0.1/
-├── frontend/                 # React frontend
-│   ├── src/
-│   ├── public/
-│   └── package.json
-├── product-api/             # Main API service
-│   ├── app/
-│   ├── models/
-│   └── requirements.txt
-├── fine_tune_service/       # Fine-tuning service
-│   ├── app/
-│   ├── services/
-│   └── requirements.txt
-├── workflow_engine/         # Workflow execution
-│   ├── engine/
-│   ├── agents/
-│   └── templates/
-├── docker-compose.yml       # Service orchestration
-├── .env.example            # Environment template
-└── README.md               # This file
+# Product API (Port: 8200)
+GET    /api/v1/datasets              # List datasets
+POST   /api/v1/datasets              # Create dataset
+GET    /api/v1/models                # List models
+POST   /api/v1/finetune/configs      # Create fine-tune config
+
+# Fine-tune Service (Port: 8400)
+POST   /finetune/start               # Start fine-tuning
+GET    /finetune/status/{task_id}    # Get training status
+GET    /finetune/models              # List fine-tuned models
+
+# Workflow Engine (Port: 8100)
+POST   /workflows                    # Create workflow
+POST   /workflows/{id}/execute       # Execute workflow
+WebSocket /ws/workflows/{id}         # Real-time updates
 ```
 
-### Contributing Guidelines
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes** with proper tests
-4. **Run the test suite**: `pytest`
-5. **Commit your changes**: `git commit -m 'Add amazing feature'`
-6. **Push to the branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
-
-### Testing Framework
+### Testing
 
 ```bash
-# Run all tests
-pytest
+# Backend tests
+pytest tests/
 
-# Run specific test file
-pytest tests/test_finetune.py
+# Frontend tests
+cd frontend && npm test
 
-# Run with coverage
-pytest --cov=app tests/
-
-# Run integration tests
-pytest tests/integration/
+# Integration tests
+pytest integration_tests/
 ```
-
-### Code Style
-
-- **Python**: Follow PEP 8, use Black formatter
-- **JavaScript**: Use ESLint and Prettier
-- **Documentation**: Use docstrings and type hints
-- **Commits**: Follow conventional commit format
-
----
-
-## 🔒 Security & Privacy
-
-### Data Privacy Guarantees
-
-- **Local Processing**: All data remains on your infrastructure
-- **No External Calls**: Models and training happen entirely locally
-- **Encrypted Storage**: Data at rest encryption options
-- **Access Controls**: Role-based access control (RBAC)
-- **Audit Logging**: Comprehensive activity logging
-
-### Security Best Practices
-
-1. **Environment Variables**: Store sensitive data in environment variables
-2. **Network Security**: Use HTTPS and secure network configurations
-3. **Database Security**: Enable database encryption and access controls
-4. **Container Security**: Regular security updates and vulnerability scanning
-5. **Backup Strategy**: Regular encrypted backups of critical data
-
-### Compliance Considerations
-
-- **GDPR**: Data processing transparency and user rights
-- **HIPAA**: Healthcare data protection (when applicable)
-- **SOC 2**: Security and availability controls
-- **ISO 27001**: Information security management
-
----
-
-## ⚡ Performance & Optimization
-
-### Hardware Recommendations
-
-#### Development Environment
-- **CPU**: Apple M1/M2/M3 (8-core minimum)
-- **RAM**: 16GB (32GB recommended)
-- **Storage**: 256GB SSD (512GB+ recommended)
-- **Network**: Stable internet for model downloads
-
-#### Production Environment
-- **CPU**: Apple M2 Pro/Max or M3 (10+ cores)
-- **RAM**: 32GB+ (64GB for large models)
-- **Storage**: 1TB+ NVMe SSD
-- **Network**: High-bandwidth connection for initial setup
-
-### Apple Silicon Optimizations
-
-- **MLX Framework**: Native Apple Silicon acceleration
-- **Metal Performance**: GPU acceleration for training
-- **Unified Memory**: Efficient memory usage across CPU/GPU
-- **Neural Engine**: Specialized AI processing unit utilization
-
-### Performance Tuning
-
-```python
-# Memory optimization
-export MLX_METAL_DEBUG=0
-export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
-
-# Training optimization
-{
-    "gradient_checkpointing": True,
-    "mixed_precision": True,
-    "dataloader_num_workers": 4,
-    "pin_memory": True
-}
-```
-
-### Monitoring & Metrics
-
-- **System Metrics**: CPU, memory, disk usage
-- **Training Metrics**: Loss curves, learning rates, throughput
-- **Model Metrics**: Inference latency, accuracy, resource usage
-- **Business Metrics**: Job completion rates, user satisfaction
 
 ---
 
@@ -894,114 +563,58 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 ### Common Issues
 
 #### Installation Problems
-
-**Issue**: MLX installation fails
-```bash
-# Solution: Ensure Apple Silicon and macOS 12.0+
-system_profiler SPHardwareDataType | grep "Chip"
-sw_vers
-```
-
-**Issue**: Docker services won't start
-```bash
-# Solution: Check Docker Desktop and port availability
-docker ps
-lsof -i :5432,:6379
-```
+- **MLX installation fails**: Ensure Apple Silicon and macOS 12.0+
+- **Docker services won't start**: Check Docker Desktop and port availability
+- **Port conflicts**: Verify ports 3000, 8200, 8400, 8100, 5678, 11434 are available
 
 #### Training Issues
+- **Out of memory errors**: Reduce batch size or use smaller models
+- **Model download fails**: Check internet connection and HuggingFace token
+- **Training stuck**: Check logs and ensure proper dataset format
 
-**Issue**: Out of memory errors
-```bash
-# Solution: Reduce batch size or model size
-{
-    "batch_size": 1,
-    "gradient_checkpointing": True
-}
-```
-
-**Issue**: Model download fails
-```bash
-# Solution: Check internet connection and HF token
-export HUGGINGFACE_API_TOKEN=your_token
-huggingface-cli login
-```
-
-### Diagnostic Tools
+### Diagnostic Commands
 
 ```bash
-# System diagnostics
-./scripts/diagnose.sh
-
-# Service health check
+# Check service status
 ./status.sh
 
-# Log analysis
+# View logs
 docker logs product-api
-tail -f fine_tune_service/logs/celery.log
+docker logs fine-tune-service
+
+# Check ports
+lsof -i :3000,:8200,:8400,:8100,:5678,:11434
 ```
-
-### Support Resources
-
-- **GitHub Issues**: Report bugs and feature requests
-- **Documentation**: Comprehensive guides and API reference
-- **Community Forum**: Ask questions and share experiences
-- **Discord**: Real-time community support
 
 ---
 
-## 🤝 Community & Support
+## 🔒 Security & Privacy
 
-### Contributing
+### Privacy-First Design
+- **Local Processing**: All data remains on your infrastructure
+- **No External Calls**: Models and training happen entirely locally
+- **Encrypted Storage**: Data at rest encryption options
+- **Access Controls**: Role-based access control (RBAC)
+
+### Security Best Practices
+- Store sensitive data in environment variables
+- Use HTTPS and secure network configurations
+- Enable database encryption and access controls
+- Regular security updates and vulnerability scanning
+
+---
+
+## 🤝 Contributing
 
 We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-### Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
-
-### Support Channels
-
-- **GitHub Issues**: Bug reports and feature requests
-- **Discussions**: General questions and community support
-- **Discord**: Real-time chat and community
-- **Email**: security@platform.ai for security issues
-
-### Roadmap
-
-- **Q1 2024**: Enhanced workflow engine with visual editor
-- **Q2 2024**: Multi-GPU training support
-- **Q3 2024**: Cloud deployment options
-- **Q4 2024**: Advanced monitoring and analytics
-
----
-
-## 📄 Appendices
-
-### Glossary
-
-- **MLX**: Apple's machine learning framework for Apple Silicon
-- **LoRA**: Low-Rank Adaptation for efficient fine-tuning
-- **Quantization**: Model compression technique
-- **Adapter**: Lightweight model modification for fine-tuning
-
-### Model Compatibility Matrix
-
-| Model | MLX Support | Size | Training Time | Inference Speed |
-|-------|-------------|------|---------------|-----------------|
-| Llama-3.2-1B | ✅ | 1GB | Fast | Very Fast |
-| Llama-3.2-3B | ✅ | 3GB | Medium | Fast |
-| Llama-3.1-8B | ✅ | 8GB | Slow | Medium |
-| Mistral-7B | ✅ | 7GB | Medium | Fast |
-
-### Hardware Compatibility
-
-| Hardware | Support Level | Performance | Notes |
-|----------|---------------|-------------|-------|
-| Apple M1 | Full | Good | Recommended minimum |
-| Apple M2 | Full | Better | Optimal performance |
-| Apple M3 | Full | Best | Latest optimizations |
-| Intel Mac | Limited | Slower | CPU-only training |
+### Development Guidelines
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes with proper tests
+4. Commit your changes: `git commit -m 'Add amazing feature'`
+5. Push to the branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
 
 ---
 
@@ -1014,8 +627,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Apple MLX Team**: For the excellent machine learning framework
 - **Hugging Face**: For model hosting and transformers library
 - **Ollama Team**: For local model serving capabilities
+- **CrewAI**: For multi-agent workflow capabilities
 - **Open Source Community**: For various dependencies and tools
-- **Contributors**: Everyone who has contributed to this project
 
 ---
 
