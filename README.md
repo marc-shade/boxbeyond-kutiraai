@@ -58,7 +58,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 **3. Workflow Engine (Port: 8100)**
 - **Technology**: FastAPI + CrewAI + LangChain
 - **Purpose**: Agentic AI workflow orchestration
-- **Features**: Multi-agent teams, dynamic workflows, LLM integration, WebSocket updates
+- **Features**: Multi-agent teams, dynamic workflows, LLM integration, WebSocket support (basic implementation)
 
 **4. n8n Workflow (Port: 5678)**
 - **Technology**: n8n + Node.js
@@ -366,9 +366,8 @@ GET    /workflows/{id}/executions    # List executions
 GET    /executions/{id}              # Get execution details
 POST   /executions/{id}/stop         # Stop execution
 
-# Real-time Updates
-WebSocket /ws/workflows/{id}         # Real-time workflow updates
-WebSocket /ws/executions/{id}        # Real-time execution updates
+# WebSocket Support (Basic Implementation)
+WebSocket /ws/{client_id}            # Basic WebSocket connection for real-time updates
 
 # Agent Management
 POST   /agents                       # Create agent
@@ -402,18 +401,17 @@ GET    /api/v1/executions/{id}            # Get execution details
 - Configuring n8n with user management and JWT tokens
 - Setting up environment variables for API keys
 
-### WebSocket Connections
+### WebSocket Support
 
-Real-time updates are available via WebSocket connections:
+WebSocket infrastructure is implemented but not actively used:
 
 ```javascript
-// Connect to workflow execution updates
-const ws = new WebSocket('ws://localhost:8100/ws/executions/execution-id');
-ws.onmessage = (event) => {
-    const update = JSON.parse(event.data);
-    console.log('Execution update:', update);
-};
+// WebSocket endpoint exists but doesn't send real-time updates yet
+const ws = new WebSocket('ws://localhost:8100/ws/your-client-id');
+// Currently only maintains connection - no active data streaming
 ```
+
+**Current Status**: WebSocket foundation is in place for future real-time features, but no active real-time updates are implemented in the current version.
 
 ---
 
@@ -434,7 +432,7 @@ Contributions from the community are welcome! Please see the [Contributing Guide
 
 ```bash
 # Clone and setup
-git clone https://github.com/your-org/OnPremAI.git
+git clone https://github.com/daniel-manickam/OnPremAI.git
 cd OnPremAI
 
 # Start databases only
@@ -454,28 +452,11 @@ cd workflow_engine && uvicorn src.main:app --reload --port 8100
 cd fine_tune_service && uvicorn app.main:app --reload --port 8400
 ```
 
-### Testing
-
-```bash
-# Backend tests
-pytest tests/
-
-# Frontend tests
-cd frontend && npm test
-
-# Integration tests
-pytest integration_tests/
-
-# End-to-end tests
-pytest e2e_tests/
-```
-
 ### Code Quality
 
 - **Python**: Follow PEP 8, use Black for formatting, type hints required
 - **JavaScript/React**: Follow ESLint configuration, use Prettier for formatting
 - **Documentation**: Update README and API docs for any new features
-- **Tests**: Maintain >80% test coverage for new code
 
 ---
 
@@ -515,6 +496,9 @@ OnPremAI is built on the shoulders of giants. Special thanks to the following pr
 ## 📞 Support & Community
 
 - **Documentation**: This README serves as the primary documentation
+- **Video Tutorials**: YouTube videos will be added shortly
+- **Issues**: [GitHub Issues](https://github.com/daniel-manickam/OnPremAI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/daniel-manickam/OnPremAI/discussions)
 
 ---
 
