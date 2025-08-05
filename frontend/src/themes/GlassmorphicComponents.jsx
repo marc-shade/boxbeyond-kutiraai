@@ -1,7 +1,7 @@
 // GlassmorphicComponents.js
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Card, AppBar, Grid, Paper, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Card, AppBar, Grid, Paper, Box, Drawer } from '@mui/material';
 import { createGlassmorphismStyles } from './GlassmorphismStyles';
 import { useTheme } from '@mui/material/styles';
 import { useThemeSettings } from '../contexts/ThemeContext';

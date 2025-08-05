@@ -1,23 +1,21 @@
 // material-ui
-import Avatar from '@mui/material/Avatar';
-import AvatarGroup from '@mui/material/AvatarGroup';
-import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 
 // project import
 import MainCard from 'components/MainCard';
 import AnalyticEcommerce from 'components/cards/statistics/AnalyticEcommerce';
 import UniqueVisitorCard from './UniqueVisitorCard';
-
-// assets
-import avatar1 from 'assets/images/users/avatar-1.png';
-import avatar2 from 'assets/images/users/avatar-2.png';
-import avatar3 from 'assets/images/users/avatar-3.png';
-import avatar4 from 'assets/images/users/avatar-4.png';
 import SystemHealth from './SystemHealth';
 import { GlassmorphicCard } from 'themes/GlassmorphicComponents';
+
+// API
+import { dashboardAPI } from 'api/dashboard';
+import { useState, useEffect } from 'react';
 
 // avatar style
 const avatarSX = {
@@ -39,8 +37,63 @@ const actionSX = {
 // ==============================|| DASHBOARD - DEFAULT ||============================== //
 
 export default function DashboardDefault() {
-  return (
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await dashboardAPI.getStats();
+        if (response.status === 'success') {
+          setStats(response.data);
+        } else {
+          setError('Failed to fetch dashboard data');
+        }
+      } catch (err) {
+        console.error('Dashboard data fetch error:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+
+    // Auto-refresh disabled - user can manually refresh the page if needed
+    // const interval = setInterval(fetchDashboardData, 30000);
+    // return () => clearInterval(interval);
+  }, []);
+
+  const calculatePercentage = (active, total) => {
+    if (total === 0) return 0;
+    return Math.round((active / total) * 100);
+  };
+
+  const getPercentageDisplay = (active, total) => {
+    const percentage = calculatePercentage(active, total);
+    // Always show percentage, even if 0
+    return percentage;
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mb: 3 }}>
+        {error}
+      </Alert>
+    );
+  }
+
+  return (
     <Grid container rowSpacing={4.5} columnSpacing={2.75}>
       {/* row 1 */}
       <Grid item xs={12} sx={{ mb: -2.25 }}>
@@ -51,9 +104,9 @@ export default function DashboardDefault() {
         <GlassmorphicCard>
           <AnalyticEcommerce
             title="Total Agents"
-            count="24"
-            percentage={12.5}
-            extra="Active: 18"
+            count={stats?.total_agents?.total?.toString() || "0"}
+            percentage={getPercentageDisplay(stats?.total_agents?.active || 0, stats?.total_agents?.total || 0)}
+            extra={`Active: ${stats?.total_agents?.active || 0}`}
             color="primary"
           />
         </GlassmorphicCard>
@@ -62,9 +115,10 @@ export default function DashboardDefault() {
         <GlassmorphicCard>
           <AnalyticEcommerce
             title="Process Flows"
-            count="156"
-            percentage={28.5}
-            extra="Active: 89"
+            count={stats?.process_flows?.total?.toString() || "0"}
+            percentage={getPercentageDisplay(stats?.process_flows?.active || 0, stats?.process_flows?.total || 0)}
+            extra={`Active: ${stats?.process_flows?.active || 0}`}
+            color="secondary"
           />
         </GlassmorphicCard>
       </Grid>
@@ -72,10 +126,10 @@ export default function DashboardDefault() {
         <GlassmorphicCard>
           <AnalyticEcommerce
             title="Fine Tune Configs"
-            count="47"
-            percentage={15.2}
+            count={stats?.finetune_configs?.total?.toString() || "0"}
+            percentage={getPercentageDisplay(stats?.finetune_configs?.active || 0, stats?.finetune_configs?.total || 0)}
             color="success"
-            extra="In Use: 32"
+            extra={`Completed: ${stats?.finetune_configs?.active || 0}`}
           />
         </GlassmorphicCard>
       </Grid>
@@ -83,10 +137,10 @@ export default function DashboardDefault() {
         <GlassmorphicCard>
           <AnalyticEcommerce
             title="Dataset Configs"
-            count="93"
-            percentage={32.1}
-            color="primary"
-            extra="Active: 78"
+            count={stats?.dataset_configs?.total?.toString() || "0"}
+            percentage={getPercentageDisplay(stats?.dataset_configs?.active || 0, stats?.dataset_configs?.total || 0)}
+            color="warning"
+            extra={`Active: ${stats?.dataset_configs?.active || 0}`}
           />
         </GlassmorphicCard>
       </Grid>
@@ -107,35 +161,7 @@ export default function DashboardDefault() {
               <SystemHealth />
             </MainCard>
           </Grid>
-          <Grid item>
-            <MainCard>
-              <Stack spacing={3}>
-                <Grid container justifyContent="space-between" alignItems="center">
-                  <Grid item>
-                    <Stack>
-                      <Typography variant="h5" noWrap>
-                        Help & Support Chat
-                      </Typography>
-                      <Typography variant="caption" color="secondary" noWrap>
-                        Typical replay within 5 min
-                      </Typography>
-                    </Stack>
-                  </Grid>
-                  <Grid item>
-                    <AvatarGroup sx={{ '& .MuiAvatar-root': { width: 32, height: 32 } }}>
-                      <Avatar alt="Remy Sharp" src={avatar1} />
-                      <Avatar alt="Travis Howard" src={avatar2} />
-                      <Avatar alt="Cindy Baker" src={avatar3} />
-                      <Avatar alt="Agnes Walker" src={avatar4} />
-                    </AvatarGroup>
-                  </Grid>
-                </Grid>
-                <Button size="small" variant="contained" sx={{ textTransform: 'capitalize' }}>
-                  Need Help?
-                </Button>
-              </Stack>
-            </MainCard>
-          </Grid>
+
         </Grid>
       </Grid>
 

@@ -1,0 +1,498 @@
+{
+  "name": "Dataset Generator Sub Process",
+  "nodes": [
+    {
+      "parameters": {
+        "fieldToSplitOut": "chatInput",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "ab01a445-98ef-4cd3-824e-78d875b34f4f",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "chunk_array",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "48e4ee8c-f3b9-4dff-a56b-7cac631d4499",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n    // Check if data is an array\n    if (Array.isArray(item.json.data)) {\n        // Initialize an array to hold all chunks\n        const allChunks = [];\n\n        // Loop through each entry in the data array\n        for (const entry of item.json.data) {\n            // Get the input text\n            let text = entry; // Each entry is now processed individually\n\n            // Remove any non-printable characters\n            text = text.replace(/[^\\x20-\\x7E\\n]/g, \"\");\n\n            // Remove any JSON-like structures\n            text = text.replace(/\\{[^}]*\\}/g, \"\");\n\n            // Remove multiple consecutive newlines\n            text = text.replace(/\\n{3,}/g, \"\\n\\n\");\n\n            // Trim whitespace from the beginning and end\n            text = text.trim();\n\n            // Split the text into words\n            const words = text.split(/\\s+/);\n\n            // Initialize an array to hold the chunks for this entry\n            const chunks = [];\n\n            // Split into chunks of approximately 1000 words\n            for (let i = 0; i < words.length; i += 1000) {\n                const chunk = words.slice(i, i + 1000).join(' ');\n                chunks.push(chunk);\n            }\n\n            // Add the chunks from this entry to the allChunks array\n            allChunks.push(...chunks);\n        }\n\n        // Set the resulting array to item.json.chatInput\n        item.json.chatInput = allChunks;\n    } else {\n        // Get the input text\n        let text = item.json.data;\n        \n        // Remove any non-printable characters\n        text = text.replace(/[^\\x20-\\x7E\\n]/g, \"\");\n      \n        // Remove any JSON-like structures\n        text = text.replace(/\\{[^}]*\\}/g, \"\");\n      \n        // Remove multiple consecutive newlines\n        text = text.replace(/\\n{3,}/g, \"\\n\\n\");\n      \n        // Trim whitespace from the beginning and end\n        text = text.trim();\n      \n        // Split the text into words\n        const words = text.split(/\\s+/);\n      \n        // Initialize an array to hold the chunks\n        const chunks = [];\n      \n        // Split into chunks of approximately 1000 words\n        for (let i = 0; i < words.length; i += 1000) {\n          const chunk = words.slice(i, i + 1000).join(' ');\n          chunks.push(chunk);\n        }\n      \n        // Set the resulting array to item.json.chatInput\n        item.json.chatInput = chunks;\n    }\n}\n\n// Return all processed items\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "id": "4daa2e15-483e-4836-94f4-6190c6417a59",
+      "name": "Split the text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your task is to divide the text into smaller, coherent chunks. Follow these steps: 1. Divide the text into chunks of approximately 500 words each. 2. Ensure each chunk maintains context and doesn't break mid-sentence or mid-paragraph. 3. Start each chunk with a delimiter '**CHUNK-1', '**CHUNK-2'. This is the text  {{ $json.chatInput }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        60,
+        0
+      ],
+      "id": "1e9f98f6-17c0-429f-acdd-de04043c29d2",
+      "name": "Chunk Creator"
+    },
+    {
+      "parameters": {
+        "model": "mistral-7b-Q4:latest",
+        "options": {
+          "temperature": 0.1,
+          "numGpu": -1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        140,
+        180
+      ],
+      "id": "fc9dcf03-1b4f-423c-9827-63a8302a97ff",
+      "name": "Mistral Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "iFXMTkBJ2tZZKutU",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function splitIntoChunks(text) {\n    // Split the text by the chunk delimiter\n    const chunks = text.split(/\\*\\*CHUNK-\\d+\\:\\s*/);\n    \n    // Remove any empty chunks and trim whitespace\n    const cleanChunks = chunks.filter(chunk => chunk.trim()).map(chunk => chunk.trim());\n    \n    // Add the chunk number back to each chunk\n    return cleanChunks.map((chunk, index) => `CHUNK-${index + 1}\\n\\n${chunk}`);\n}\n\n// Loop over input items and add a new field called 'chunk_array' to the JSON of each one\nfor (const item of $input.all()) {\n    item.json.chunk_array = splitIntoChunks(item.json.text);\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "e76639c0-3dfd-49e1-8639-82982ed1efe0",
+      "name": "Chunk Splitter"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an {{ $('Execute Workflow Trigger').item.json.input_params.domain}} expert. Your task is to create factual, relevant Q&A pairs from the given text chunk (formatted as JSON or plain text). Follow these guidelines:\nRead and understand the content of the provided chunk thoroughly.\nGenerate clear, concise question-answer pairs based solely on this information.\nEnsure each question is directly related to the content.\nProvide answers that are accurate and elaborate, explaining concepts clearly and thoroughly.\nAvoid creating questions or answers that require information from outside the given chunk.\nFormat each Q&A pair as follows: \"Q: [Question]\" and \"A: [Answer]\" as shown in the example below.\nTake time to understand the content fully before generating Q&A pairs.\n\nExample Q&A Pair:\nQ: What is ITIL?\nA: ITIL (Information Technology Infrastructure Library) is a set of practices for IT service management that focuses on aligning IT services with the needs of the business.\n\nHere is the text chunk:\n{{ $json.chunk_array }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        860,
+        0
+      ],
+      "id": "38ec40d2-644a-4f1e-ae24-eca6c3846078",
+      "name": "Q&A Generator",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": "mistral-7b-Q4:latest",
+        "options": {
+          "temperature": 0.1,
+          "numGpu": -1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        900,
+        180
+      ],
+      "id": "8d7dd48e-0cb3-4e98-bbe2-b77d94e37f9a",
+      "name": "Mistral Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "iFXMTkBJ2tZZKutU",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function splitIntoQAPairs(text, systemPrompt, modelTemplate) {\n    // Split the text into individual Q&A pairs\n    const pairs = text.split('\\n\\n').filter(pair => pair.trim().startsWith('Q:'));\n\n    // Process each pair\n    const jsonlData = pairs.map(pair => {\n        const [question, answer] = pair.split('\\nA:');\n\n        if (question && answer) {\n            // Remove the 'Q: ' prefix from the question\n            const cleanQuestion = question.replace('Q:', '').trim();\n            const cleanAnswer = answer.trim();\n\n            // Create the JSONL object\n            const jsonlObject = modelTemplate\n                .replace('{system_prompt}', systemPrompt)\n                .replace('{question}', cleanQuestion)\n                .replace('{answer}', cleanAnswer);\n\n            // Return the stringified JSONL object\n            return JSON.stringify(jsonlObject);\n        }\n    }).filter(Boolean);\n\n    // Join the JSONL objects with newlines\n    return jsonlData.join('\\n');\n}\n\n// Loop over input items and add a new field called 'qaPairs' to the JSON of each one\nfor (const item of $input.all()) {\n    const systemPrompt = '';\n    const modelTemplate = '<s>[INST] Question: {question} [/INST] {answer}</s>';\n    if (!item.json.qaPairs) {\n        item.json.qaPairs = '';\n    }\n    item.json.qaPairs = item.json.qaPairs + splitIntoQAPairs(item.json.text, systemPrompt, modelTemplate);\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        0
+      ],
+      "id": "3ef46a6d-ca96-4690-a370-5c609c94f0c8",
+      "name": "Q&A Splitter",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "dataset_output_table",
+          "mode": "list",
+          "cachedResultName": "dataset_output_table"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dataset_id": "={{ $('Execute Workflow Trigger').item.json.input_params.dataset_id}}",
+            "jsonl_content": "={{ $json.qaPairs }}",
+            "chunk_text": "={{ $('Split Out1').item.json.chunk_array }}",
+            "filename": "={{ $('Execute Workflow Trigger').item.json.file_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_id",
+              "displayName": "dataset_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "chunk_text",
+              "displayName": "chunk_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jsonl_content",
+              "displayName": "jsonl_content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "filename",
+              "displayName": "filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "43797751-f0c0-4ddf-9c0d-886a6f607463",
+      "name": "Persist In DB",
+      "credentials": {
+        "postgres": {
+          "id": "XA5EK2QcBpdEUuJn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "dataset_master_table",
+          "mode": "list",
+          "cachedResultName": "dataset_master_table"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Execute Workflow Trigger').item.json.input_params.dataset_id}}",
+            "dataset_status": "Success"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dataset_name",
+              "displayName": "dataset_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_workflow_url",
+              "displayName": "dataset_workflow_url",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_desc",
+              "displayName": "dataset_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_model_template",
+              "displayName": "dataset_model_template",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_status",
+              "displayName": "dataset_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "dataset_system_prompt",
+              "displayName": "dataset_system_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1640,
+        0
+      ],
+      "id": "64d792d9-2209-4b5a-9839-afb9baad14c5",
+      "name": "Update Status",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "XA5EK2QcBpdEUuJn",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        0
+      ],
+      "id": "737f5291-95d7-42cc-b476-830ed5469f79",
+      "name": "Execute Workflow Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Chunk Creator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Q&A Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split the text": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Creator": {
+      "main": [
+        [
+          {
+            "node": "Chunk Splitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Chunk Creator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Splitter": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q&A Generator": {
+      "main": [
+        [
+          {
+            "node": "Q&A Splitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Q&A Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q&A Splitter": {
+      "main": [
+        [
+          {
+            "node": "Persist In DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist In DB": {
+      "main": [
+        [
+          {
+            "node": "Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Split the text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "24ac93b3-507d-4970-93ed-9143fb990c4b",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "KqtnwZfiTHtPk6AX",
+  "tags": []
+}

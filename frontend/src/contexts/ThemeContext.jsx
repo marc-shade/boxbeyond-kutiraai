@@ -13,9 +13,9 @@ export const useThemeSettings = () => {
 
 export const ThemeSettingsProvider = ({ children }) => {
   const [glassmorphismEnabled, setGlassmorphismEnabled] = useState(() => {
-    // Load from localStorage or default to true
+    // Load from localStorage or default to false (white background)
     const saved = localStorage.getItem('glassmorphismEnabled');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   useEffect(() => {

@@ -1,184 +1,40 @@
-# 🚀 AI Fine-tuning & Workflow Platform
+# OnPremAI
 
-> **Enterprise-grade AI platform for local deployment with privacy-first architecture**
+![OnPremAI Logo](onpremai_logo.jpg)
 
-A comprehensive, open-source platform that enables developers and enterprises to fine-tune large language models locally, create intelligent workflows, and deploy AI solutions without compromising data privacy.
+> **Enterprise-grade AI platform for complete local deployment with privacy-first architecture**
 
-## 🌟 Key Features
-
-- **🔒 Privacy-First**: Complete local deployment - your data never leaves your infrastructure
-- **⚡ Apple Silicon Optimized**: Native MLX integration for blazing-fast performance on Apple Silicon
-- **🎯 Advanced Fine-tuning**: Support for LLaMA, Mistral, and custom models with intelligent optimization
-- **🔄 Intelligent Workflows**: CrewAI-based multi-agent orchestration with n8n process automation
-- **📊 Real-time Monitoring**: Comprehensive progress tracking and performance metrics
-- **🚀 Fast Downloads**: Integrated hf_transfer for 3-5x faster model downloads
-- **🔧 Production Ready**: Microservices architecture with Docker containerization
+OnPremAI is a comprehensive, open-source platform that enables developers and enterprises to run AI workloads entirely on-premises. From dataset generation and LLM fine-tuning to enterprise process integration - all while keeping your data completely private and secure.
 
 ---
 
-## 📋 Table of Contents
+## 🌟 Introduction
 
-- [🏠 Project Overview](#-project-overview)
-- [🚀 Quick Start Guide](#-quick-start-guide)
-- [🏗️ System Architecture](#️-system-architecture)
-- [🔧 Installation & Setup](#-installation--setup)
-- [📚 Core Components](#-core-components)
-- [🎯 User Guides](#-user-guides)
-- [🔌 API Documentation](#-api-documentation)
-- [🛠️ Developer Guide](#️-developer-guide)
-- [🔒 Security & Privacy](#-security--privacy)
-- [⚡ Performance & Optimization](#-performance--optimization)
-- [🔧 Configuration Reference](#-configuration-reference)
-- [📊 Monitoring & Observability](#-monitoring--observability)
-- [🚨 Troubleshooting](#-troubleshooting)
-- [🔄 Migration & Upgrades](#-migration--upgrades)
-- [🤝 Community & Support](#-community--support)
-- [📄 Appendices](#-appendices)
+OnPremAI was designed with a core philosophy: **your data should never leave your infrastructure**. In an era where data privacy and security are paramount, OnPremAI provides a complete AI platform that runs entirely on your local infrastructure.
 
----
+### Key Principles
 
-## 🏠 Project Overview
+- **🔒 Complete Local Deployment**: Every component runs on your infrastructure - no external dependencies for core functionality
+- **📊 End-to-End AI Pipeline**: From raw documents to fine-tuned models to enterprise workflows
+- **🚀 Easy Installation**: Single command deployment with containerized, modular architecture
+- **🔧 Modular Design**: Each service is independently deployable and scalable
+- **🏢 Enterprise Ready**: Built for production workloads with monitoring, logging, and security
 
-### What is this platform?
+### What Makes OnPremAI Different
 
-This platform is a comprehensive AI solution designed for developers and enterprises who need to:
-- Fine-tune large language models on their own data
-- Create intelligent workflows and automation
-- Deploy AI solutions locally without data privacy concerns
-- Leverage Apple Silicon hardware for optimal performance
-
-### Key Capabilities
-
-- **Local LLM Fine-tuning**: Train models on your proprietary data
-- **Workflow Automation**: Create complex AI-powered workflows
-- **Model Management**: Deploy and manage multiple AI models
-- **Data Processing**: Handle various data formats and sources
-- **Real-time Monitoring**: Track training progress and system performance
-
-### Architecture Philosophy
-
-- **Private Data**: All processing happens locally - no data leaves your environment
-- **Local LLMs**: Run and fine-tune models entirely on your hardware
-- **End-to-end AI**: Complete pipeline from data ingestion to model deployment
-- **Apple Silicon First**: Optimized for M1/M2/M3 chips with MLX framework
-
-### Target Audience
-
-- **Developers**: Building AI-powered applications with custom models
-- **Enterprises**: Organizations requiring data privacy and local AI deployment
-- **Researchers**: Teams needing flexible fine-tuning and experimentation platforms
-- **Data Scientists**: Professionals working with proprietary datasets
+- **Dataset Generation**: Automatically generate training datasets from your documents (Google Drive, local files)
+- **Local Fine-tuning**: Train LLMs on your proprietary data using Apple Silicon optimization (MLX)
+- **Agentic Workflows**: Create intelligent multi-agent workflows powered by CrewAI
+- **Process Integration**: Seamlessly integrate AI into enterprise processes with n8n workflows
+- **Vector Store**: Built-in Qdrant vector database for RAG and semantic search
 
 ---
 
-## 🚀 Quick Start Guide
-
-### Prerequisites
-
-- **Hardware**: Apple Silicon Mac (M1/M2/M3) recommended for optimal performance
-- **Software**:
-  - [Ollama](https://ollama.ai/download)
-  - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-  - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html)
-  - [Node.js and npm](https://nodejs.org/en/download/package-manager)
-- **Memory**: 16GB RAM minimum, 32GB+ recommended for large models
-- **Storage**: 50GB+ free space for models and data
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
-cd product-platform_0.0.1
-
-# Configure environment
-cp .env.example .env
-# Edit .env file with your configuration
-# Required: Set HUGGINGFACE_API_TOKEN and database passwords
-
-# Start all services
-./start.sh
-
-# Access the platform
-open http://localhost:3000
-```
-
-### First Fine-tuning Job
-
-1. **Upload Dataset**: Navigate to the fine-tuning section and upload your JSONL dataset
-2. **Select Model**: Choose from pre-configured models or specify a custom one
-3. **Configure Training**: Set parameters like learning rate, batch size, and iterations
-4. **Monitor Progress**: Watch real-time training metrics and progress
-5. **Deploy Model**: Use the fine-tuned model in workflows or via API
-
-### Management Commands
-
-- **Check Status**: `./status.sh`
-- **Stop Fine-tuning**: `./stop_fine_tune.sh`
-- **Stop All Services**: `docker compose down`
-
----
-
-## 🏗️ System Architecture
+## 🏗️ Architecture
 
 ### High-Level Architecture
 
-```mermaid
-graph TB
-    %% User Interface Layer
-    subgraph "Frontend Layer"
-        UI[React Frontend<br/>Port: 3000]
-    end
-
-    %% API Gateway Layer
-    subgraph "API Services Layer"
-        PA[Product API<br/>Port: 8200<br/>FastAPI]
-        FTS[Fine-tune Service<br/>Port: 8400<br/>FastAPI + Celery]
-        WE[Workflow Engine<br/>Port: 8100<br/>FastAPI + CrewAI]
-        N8N[n8n Workflow<br/>Port: 5678<br/>Process Automation]
-    end
-
-    %% Data Layer
-    subgraph "Data Storage Layer"
-        PDB[(Product DB<br/>PostgreSQL<br/>Port: 5434)]
-        WDB[(Workflow DB<br/>PostgreSQL<br/>Port: 5435)]
-        NDB[(n8n DB<br/>PostgreSQL<br/>Port: 5432)]
-        REDIS[(Redis<br/>Port: 6379<br/>Task Queue)]
-        QDRANT[(Qdrant<br/>Port: 6333<br/>Vector DB)]
-    end
-
-    %% External Services
-    subgraph "External AI Services"
-        OLLAMA[Ollama<br/>Port: 11434<br/>Local LLM Server]
-        HF[Hugging Face<br/>Model Hub & API]
-        MLX[MLX Framework<br/>Apple Silicon ML]
-    end
-
-    %% File Storage
-    subgraph "File Storage"
-        FS[Shared File Storage<br/>Docker Volumes]
-    end
-
-    %% Connections
-    UI --> PA
-    UI --> FTS
-    UI --> WE
-    UI --> N8N
-
-    PA --> PDB
-    FTS --> PDB
-    FTS --> REDIS
-    WE --> WDB
-    N8N --> NDB
-
-    FTS --> MLX
-    FTS --> HF
-    WE --> OLLAMA
-    PA --> HF
-
-    N8N --> FS
-    FTS --> FS
-```
+![OnPremAI Architecture](OnPremAI-Arch.png)
 
 ### Service Architecture
 
@@ -208,6 +64,18 @@ graph TB
 - **Technology**: n8n + Node.js
 - **Purpose**: Process automation and integration
 - **Features**: Visual workflow builder, 200+ integrations, data processing pipelines
+
+#### **Data Storage Layer**
+- **Product Database**: PostgreSQL (Port: 5434) - Core platform data
+- **Workflow Database**: PostgreSQL (Port: 5435) - Agent workflow data
+- **n8n Database**: PostgreSQL (Port: 5432) - Process automation data
+- **Redis**: (Port: 6379) - Task queue and caching
+- **Qdrant**: (Port: 6333) - Vector database for embeddings
+
+#### **AI/ML Services**
+- **Ollama**: (Port: 11434) - Local LLM server
+- **MLX Framework**: Apple Silicon ML optimization
+- **Hugging Face Integration**: Model hub access
 
 ### Technology Stack
 
@@ -239,7 +107,7 @@ graph TB
 - **LangChain**: LLM application framework
 - **LoRA**: Efficient fine-tuning technique
 
-### 🔌 Port Configuration
+### Port Configuration
 
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
@@ -255,31 +123,9 @@ graph TB
 | Redis | 6379 | TCP | Task queue |
 | Qdrant | 6333 | HTTP | Vector database |
 
-### Data Flow Architecture
-
-#### **Fine-tuning Pipeline**
-```
-Dataset Upload → Product API → Database Storage →
-Fine-tune Service → MLX Processing → Adapter Creation →
-Ollama Model Registration → UI Update
-```
-
-#### **Workflow Execution**
-```
-Workflow Definition → Workflow Engine → CrewAI Agents →
-Ollama LLM → Task Execution → Results Storage →
-Real-time Updates
-```
-
-#### **Process Automation**
-```
-Trigger Event → n8n Workflow → External APIs →
-Data Processing → Database Update → Notification
-```
-
 ---
 
-## 🔧 Installation & Setup
+## 🚀 Quick Start Guide
 
 ### Prerequisites
 
@@ -292,255 +138,305 @@ Data Processing → Database Update → Notification
 - **Memory**: 16GB RAM minimum, 32GB+ recommended for large models
 - **Storage**: 50GB+ free space for models and data
 
-### Quick Start
+### Installation
+
+#### One-Command Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
-cd product-platform_0.0.1
+git clone https://github.com/your-org/OnPremAI.git
+cd OnPremAI
 
 # Configure environment
 cp .env.example .env
 # Edit .env file with your configuration
 # Required: Set HUGGINGFACE_API_TOKEN and database passwords
 
-# Start all services
+# Start the entire platform
 ./start.sh
-
-# Access the platform
-open http://localhost:3000
 ```
 
-### Manual Setup (Alternative)
+The `start.sh` script will:
+- Start all Docker services (databases, APIs, frontend)
+- Set up the fine-tuning service with MLX
+- Import pre-built n8n workflows
+- Verify all services are running
+- Provide access URLs
 
-If you prefer manual setup:
+#### N8N Credentials Setup
 
-1. **Start Docker Services**
-   ```bash
-   docker compose up -d --build
-   ```
+After the platform is running, you need to create the following credentials in n8n (http://localhost:5678):
 
-2. **Setup Fine-tuning Service** (Apple Silicon only)
-   ```bash
-   cd fine_tune_service
-   python3 -m venv fine_tune_env
-   source fine_tune_env/bin/activate
-   pip install -r requirements.txt
+1. **Google Drive API** - For document access from Google Drive
+2. **OnPremAI Product API** - For dataset management integration
+3. **OnPremAI Workflow Engine** - For agentic workflow integration
+4. **Local File System** - For local document processing
 
-   # Start API service
-   uvicorn app.main:app --host 0.0.0.0 --port 8400
+#### Pre-built Workflows
 
-   # In another terminal, start Celery worker
-   celery -A app.celery_app.celery_app worker --loglevel=INFO
-   ```
+OnPremAI includes 6 pre-configured n8n workflows:
 
-### Management Commands
-
-- **Check Status**: `./status.sh`
-- **Stop Fine-tuning**: `./stop_fine_tune.sh`
-- **Stop All Services**: `docker compose down`
+| Workflow Name | Purpose | Description |
+|---------------|---------|-------------|
+| **Dataset Generator - Google Drive** | Document Processing | Extracts documents from Google Drive, chunks them, and generates Q&A pairs |
+| **Dataset Generator - Local Drive** | Document Processing | Processes local documents and creates training datasets |
+| **Dataset Generator Sub Process** | Data Processing | Handles document chunking and Q&A generation logic |
+| **Agentic Workflow** | AI Orchestration | Executes CrewAI-based multi-agent workflows |
+| **RAG Workflow** | Knowledge Retrieval | Implements Retrieval-Augmented Generation workflows |
+| **Update Knowledge Base** | Vector Store Management | Updates and manages Qdrant vector embeddings |
 
 ---
 
-## 📚 Core Components
+## 🎯 Key Capabilities
 
-### Fine-tuning Service
+### 4.1 Dataset Generation
 
-The fine-tuning service provides enterprise-grade model training capabilities with Apple Silicon optimization.
+OnPremAI provides comprehensive dataset generation capabilities for fine-tuning:
 
-#### Key Features
+- **Multi-Source Support**: Read documents from Google Drive or local file systems via n8n workflows
+- **Intelligent Chunking**: Automatically split documents into optimal chunks for training
+- **Q&A Generation**: Generate question-answer pairs from document chunks using LLMs
+- **Format Optimization**: Format datasets specifically for target LLM architectures (LLaMA, Mistral, etc.)
+- **Quality Control**: Review and edit generated Q&A pairs before training
+- **Batch Processing**: Handle large document collections efficiently
+
+**Supported Formats**: PDF, DOCX, TXT, MD, HTML
+**Output Formats**: JSONL optimized for LLaMA 3.2, Mistral, and custom model templates
+
+### 4.2 Fine-tuning LLM
+
+Enterprise-grade model fine-tuning with Apple Silicon optimization:
+
 - **MLX Integration**: Native Apple Silicon acceleration for 3-5x faster training
 - **Model Support**: LLaMA 3.2, LLaMA 3.1, Mistral 7B, and custom models
-- **Progress Tracking**: Real-time training metrics and progress monitoring
-- **Error Recovery**: Robust error handling with detailed diagnostics
+- **LoRA Fine-tuning**: Efficient parameter-efficient training
+- **Real-time Monitoring**: Track training progress, loss curves, and metrics
+- **Automatic Deployment**: Deploy fine-tuned models directly to Ollama
+- **Adapter Management**: Save and version model adapters
 
-#### Supported Models
-| Model Family | MLX Model | Size | Recommended Use |
-|--------------|-----------|------|-----------------|
-| LLaMA 3.2 | `mlx-community/Llama-3.2-1B-Instruct-4bit` | 1B | Fast training, testing |
-| LLaMA 3.2 | `mlx-community/Llama-3.2-3B-Instruct-4bit` | 3B | Balanced performance |
-| LLaMA 3.1 | `mlx-community/Llama-3.1-8B-Instruct-4bit` | 8B | High quality results |
-| Mistral | `mlx-community/Mistral-7B-Instruct-v0.3-4bit` | 7B | Efficient inference |
+**Process Flow**:
+1. Upload dataset (JSONL format)
+2. Select base model and configure parameters
+3. Start training with real-time progress tracking
+4. Automatic model deployment to Ollama
+5. Test and validate fine-tuned model
 
-### Workflow Engine
+### 4.3 Agentic Workflows
 
-CrewAI-based workflow system for creating complex AI-powered automation.
+Powered by CrewAI for intelligent multi-agent orchestration:
 
-#### Features
-- **Multi-Agent Teams**: Multiple AI agents working together
-- **Dynamic Workflows**: Runtime workflow generation and execution
-- **LLM Integration**: Direct integration with Ollama models
-- **Real-time Updates**: WebSocket-based progress monitoring
+- **Agent Configuration**: Define specialized AI agents with specific roles and capabilities
+- **Team Coordination**: Orchestrate multiple agents working together on complex tasks
+- **Dynamic Workflows**: Create workflows that adapt based on intermediate results
+- **LLM Integration**: Use your fine-tuned models within agent workflows
+- **API Integration**: Invoke agentic workflows via REST API
+- **n8n Integration**: Seamlessly integrate with enterprise processes using HTTP nodes
 
-### n8n Process Automation
+**Example Use Cases**:
+- Document analysis and summarization teams
+- Multi-step research and fact-checking workflows
+- Content generation with review and editing agents
+- Data processing and validation pipelines
 
-Visual workflow builder for process automation and integration.
+### 4.4 Process Flows
 
-#### Features
-- **Visual Builder**: Drag-and-drop workflow creation
-- **200+ Integrations**: Pre-built connectors for popular services
-- **Data Processing**: ETL pipelines and data transformation
-- **Scheduled Workflows**: Time-based and event-driven automation
+Powered by n8n for enterprise process automation:
 
-### Model Management
+- **Visual Workflow Builder**: Drag-and-drop interface for creating complex processes
+- **200+ Integrations**: Pre-built connectors for popular enterprise systems
+- **Fine-tuned LLM Integration**: Use your custom models within process flows
+- **Agentic Workflow Invocation**: Call CrewAI workflows from n8n processes
+- **Event-driven Automation**: Trigger workflows based on external events
+- **Data Transformation**: ETL capabilities for data processing
 
-Comprehensive model lifecycle management with Ollama integration.
+**Integration Capabilities**:
+- CRM systems (Salesforce, HubSpot)
+- Communication platforms (Slack, Teams, Email)
+- File storage (Google Drive, SharePoint, S3)
+- Databases and APIs
+- Custom HTTP endpoints
 
-#### Features
-- **Model Registry**: Centralized model storage and versioning
-- **Dynamic Loading**: On-demand model loading and unloading
-- **Health Monitoring**: Model performance and availability tracking
-- **Template Support**: Pre-configured model templates
+### 4.5 Vector Store
 
-#### Model Templates
-```python
-# LLaMA 3.2 Template
-LLAMA_32_TEMPLATE = """
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-{system_prompt}<|eot_id|>
-<|start_header_id|>user<|end_header_id|>
-{question}<|eot_id|>
-<|start_header_id|>assistant<|end_header_id|>
-{answer}<|eot_id|>
-"""
+Built-in Qdrant vector database for semantic search and RAG:
 
-# Mistral Template
-MISTRAL_TEMPLATE = """
-<s>[INST] Question: {question} [/INST] {answer}</s>
-"""
-```
+- **Qdrant Dashboard**: Web interface for managing vector collections
+- **Embedding Management**: Store and query document embeddings
+- **Semantic Search**: Find similar documents and content
+- **RAG Implementation**: Retrieval-Augmented Generation workflows
+- **Collection Management**: Organize embeddings by project or domain
+- **Performance Monitoring**: Track query performance and storage metrics
+
+**Features**:
+- High-performance vector similarity search
+- Metadata filtering and hybrid search
+- Scalable storage for large document collections
+- Integration with fine-tuning and workflow services
 
 ---
 
-## 🎯 User Guides
+## 🏛️ Architecture Philosophy
 
-### Fine-tuning Guide
+OnPremAI is built on four core architectural principles:
 
-#### Preparing Your Dataset
-1. **Format Requirements**
-   ```jsonl
-   {"text": "Question: What is AI? Answer: Artificial Intelligence is..."}
-   {"text": "Question: How does ML work? Answer: Machine Learning works by..."}
-   ```
+- **Private Data**: All processing happens locally - no data leaves your environment
+- **Local LLMs**: Run and fine-tune models entirely on your hardware
+- **End-to-end AI**: Complete pipeline from data ingestion to model deployment
+- **Apple Silicon First**: Optimized for M1/M2/M3 chips with MLX framework
 
-2. **Quality Guidelines**
-   - Minimum 10 examples, recommended 100+
-   - Consistent formatting across examples
-   - Balanced representation of use cases
+This ensures complete data sovereignty while providing enterprise-grade AI capabilities.
 
-#### Choosing Models
-| Use Case | Recommended Model | Reasoning |
-|----------|------------------|-----------|
-| Quick prototyping | Llama-3.2-1B | Fast training, good for testing |
-| Production deployment | Llama-3.2-3B | Balanced speed and quality |
-| High-quality results | Llama-3.1-8B | Best performance, slower training |
+---
 
-#### Configuration Best Practices
-```python
-# For small datasets (< 100 examples)
-{
-    "batch_size": 1,
-    "learning_rate": 1e-4,
-    "num_iterations": 50,
-    "num_layers": 8
-}
+## 📚 API Documentation
 
-# For medium datasets (100-1000 examples)
-{
-    "batch_size": 2,
-    "learning_rate": 1e-5,
-    "num_iterations": 100,
-    "num_layers": 16
-}
-```
+### Core API Endpoints
 
-### Workflow Creation
-
-#### Basic Workflow Structure
-```yaml
-name: "Document Analysis Workflow"
-description: "Analyze documents and extract insights"
-
-agents:
-  - name: "document_analyzer"
-    model: "llama3.2-finetuned"
-    role: "Document analysis specialist"
-
-tasks:
-  - name: "extract_content"
-    agent: "document_analyzer"
-    input: "{{ document_path }}"
-    output: "extracted_content"
-```
-
-### Model Deployment
-
-#### Ollama Integration
+#### Product API (Port: 8200)
 ```bash
-# Deploy fine-tuned model
-ollama create my-model -f Modelfile
-ollama run my-model
+# Dataset Management
+GET    /api/v1/datasets              # List datasets
+POST   /api/v1/datasets              # Create dataset
+GET    /api/v1/datasets/{id}         # Get dataset details
+PUT    /api/v1/datasets/{id}         # Update dataset
+DELETE /api/v1/datasets/{id}         # Delete dataset
+
+# Model Management
+GET    /api/v1/models                # List models
+POST   /api/v1/models                # Register model
+GET    /api/v1/models/{id}           # Get model details
+
+# Fine-tuning Configuration
+POST   /api/v1/finetune/configs      # Create fine-tune config
+GET    /api/v1/finetune/configs      # List configurations
+GET    /api/v1/finetune/configs/{id} # Get configuration details
+
+# Dashboard & Analytics
+GET    /api/v1/dashboard/stats       # Platform statistics
+GET    /api/v1/dashboard/chart-data  # Chart data for UI
+
+# Image Generation
+POST   /api/v1/image/generate        # Generate images with FLUX.1-dev
 ```
 
-#### API Access
-```python
-import requests
+#### Fine-tune Service (Port: 8400)
+```bash
+# Fine-tuning Operations
+POST   /finetune/start               # Start fine-tuning job
+GET    /finetune/status/{task_id}    # Get training status
+POST   /finetune/stop/{task_id}      # Stop training job
+GET    /finetune/models              # List fine-tuned models
+GET    /finetune/logs/{task_id}      # Get training logs
 
-response = requests.post("http://localhost:11434/api/generate", {
-    "model": "my-model",
-    "prompt": "Your question here"
-})
+# Model Management
+POST   /finetune/deploy/{model_id}   # Deploy model to Ollama
+GET    /finetune/adapters            # List model adapters
+DELETE /finetune/adapters/{id}       # Delete adapter
+```
+
+#### Workflow Engine (Port: 8100)
+```bash
+# Workflow Management
+POST   /workflows                    # Create workflow
+GET    /workflows                    # List workflows
+GET    /workflows/{id}               # Get workflow details
+PUT    /workflows/{id}               # Update workflow
+DELETE /workflows/{id}               # Delete workflow
+
+# Execution
+POST   /workflows/{id}/execute       # Execute workflow
+GET    /workflows/{id}/executions    # List executions
+GET    /executions/{id}              # Get execution details
+POST   /executions/{id}/stop         # Stop execution
+
+# Real-time Updates
+WebSocket /ws/workflows/{id}         # Real-time workflow updates
+WebSocket /ws/executions/{id}        # Real-time execution updates
+
+# Agent Management
+POST   /agents                       # Create agent
+GET    /agents                       # List agents
+PUT    /agents/{id}                  # Update agent
+DELETE /agents/{id}                  # Delete agent
+```
+
+#### n8n Workflow Service (Port: 5678)
+```bash
+# Standard n8n API endpoints
+GET    /api/v1/workflows             # List workflows
+POST   /api/v1/workflows             # Create workflow
+GET    /api/v1/workflows/{id}        # Get workflow
+PUT    /api/v1/workflows/{id}        # Update workflow
+DELETE /api/v1/workflows/{id}        # Delete workflow
+
+# Execution
+POST   /api/v1/workflows/{id}/activate    # Activate workflow
+POST   /api/v1/workflows/{id}/deactivate  # Deactivate workflow
+GET    /api/v1/executions                 # List executions
+GET    /api/v1/executions/{id}            # Get execution details
+```
+
+### Authentication
+
+Most API endpoints require authentication. Set up API keys in your environment:
+
+```bash
+# Environment variables
+PRODUCT_API_KEY=your_product_api_key
+WORKFLOW_API_KEY=your_workflow_api_key
+N8N_API_KEY=your_n8n_api_key
+```
+
+### WebSocket Connections
+
+Real-time updates are available via WebSocket connections:
+
+```javascript
+// Connect to workflow execution updates
+const ws = new WebSocket('ws://localhost:8100/ws/executions/execution-id');
+ws.onmessage = (event) => {
+    const update = JSON.parse(event.data);
+    console.log('Execution update:', update);
+};
 ```
 
 ---
 
-## 🔧 Development
+## 🤝 Contributing
+
+We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Guidelines
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** with proper tests
+4. **Commit your changes**: `git commit -m 'Add amazing feature'`
+5. **Push to the branch**: `git push origin feature/amazing-feature`
+6. **Open a Pull Request**
 
 ### Development Setup
 
-#### Prerequisites
-- Python 3.12+
-- Node.js 18+
-- Docker Desktop
-- Ollama
-
-#### Quick Development Setup
 ```bash
 # Clone and setup
-git clone https://github.com/daniel-manickam/product-platform_0.0.1.git
-cd product-platform_0.0.1
+git clone https://github.com/your-org/OnPremAI.git
+cd OnPremAI
 
-# Start databases
-docker compose up -d postgres redis
+# Start databases only
+docker compose up -d postgres-product postgres-workflow postgres-n8n redis qdrant
 
 # Setup Python environment
-conda create -n platform python=3.12
-conda activate platform
+conda create -n onpremai python=3.12
+conda activate onpremai
 pip install -r requirements.txt
 
 # Setup frontend
-cd frontend && npm install
-```
+cd frontend && npm install && npm run dev
 
-### API Documentation
-
-#### Core API Endpoints
-```
-# Product API (Port: 8200)
-GET    /api/v1/datasets              # List datasets
-POST   /api/v1/datasets              # Create dataset
-GET    /api/v1/models                # List models
-POST   /api/v1/finetune/configs      # Create fine-tune config
-
-# Fine-tune Service (Port: 8400)
-POST   /finetune/start               # Start fine-tuning
-GET    /finetune/status/{task_id}    # Get training status
-GET    /finetune/models              # List fine-tuned models
-
-# Workflow Engine (Port: 8100)
-POST   /workflows                    # Create workflow
-POST   /workflows/{id}/execute       # Execute workflow
-WebSocket /ws/workflows/{id}         # Real-time updates
+# Run individual services for development
+cd product_api && uvicorn app.main:app --reload --port 8200
+cd workflow_engine && uvicorn src.main:app --reload --port 8100
+cd fine_tune_service && uvicorn app.main:app --reload --port 8400
 ```
 
 ### Testing
@@ -554,67 +450,17 @@ cd frontend && npm test
 
 # Integration tests
 pytest integration_tests/
+
+# End-to-end tests
+pytest e2e_tests/
 ```
 
----
+### Code Quality
 
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Installation Problems
-- **MLX installation fails**: Ensure Apple Silicon and macOS 12.0+
-- **Docker services won't start**: Check Docker Desktop and port availability
-- **Port conflicts**: Verify ports 3000, 8200, 8400, 8100, 5678, 11434 are available
-
-#### Training Issues
-- **Out of memory errors**: Reduce batch size or use smaller models
-- **Model download fails**: Check internet connection and HuggingFace token
-- **Training stuck**: Check logs and ensure proper dataset format
-
-### Diagnostic Commands
-
-```bash
-# Check service status
-./status.sh
-
-# View logs
-docker logs product-api
-docker logs fine-tune-service
-
-# Check ports
-lsof -i :3000,:8200,:8400,:8100,:5678,:11434
-```
-
----
-
-## 🔒 Security & Privacy
-
-### Privacy-First Design
-- **Local Processing**: All data remains on your infrastructure
-- **No External Calls**: Models and training happen entirely locally
-- **Encrypted Storage**: Data at rest encryption options
-- **Access Controls**: Role-based access control (RBAC)
-
-### Security Best Practices
-- Store sensitive data in environment variables
-- Use HTTPS and secure network configurations
-- Enable database encryption and access controls
-- Regular security updates and vulnerability scanning
-
----
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Guidelines
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes with proper tests
-4. Commit your changes: `git commit -m 'Add amazing feature'`
-5. Push to the branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+- **Python**: Follow PEP 8, use Black for formatting, type hints required
+- **JavaScript/React**: Follow ESLint configuration, use Prettier for formatting
+- **Documentation**: Update README and API docs for any new features
+- **Tests**: Maintain >80% test coverage for new code
 
 ---
 
@@ -622,15 +468,51 @@ We welcome contributions from the community! Please see our [Contributing Guidel
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+### MIT License Summary
 
-- **Apple MLX Team**: For the excellent machine learning framework
-- **Hugging Face**: For model hosting and transformers library
-- **Ollama Team**: For local model serving capabilities
-- **CrewAI**: For multi-agent workflow capabilities
-- **Open Source Community**: For various dependencies and tools
+- ✅ Commercial use
+- ✅ Modification
+- ✅ Distribution
+- ✅ Private use
+- ❌ Liability
+- ❌ Warranty
 
 ---
 
-*Built with ❤️ for the AI community*
+## 🙏 Acknowledgments
 
+OnPremAI is built on the shoulders of giants. We thank the following projects and communities:
+
+- **[Apple MLX Team](https://github.com/ml-explore/mlx)**: For the excellent machine learning framework optimized for Apple Silicon
+- **[Hugging Face](https://huggingface.co/)**: For model hosting, transformers library, and democratizing AI
+- **[Ollama Team](https://ollama.ai/)**: For making local model serving accessible and efficient
+- **[CrewAI](https://github.com/joaomdmoura/crewAI)**: For multi-agent workflow capabilities and intelligent orchestration
+- **[n8n](https://n8n.io/)**: For the powerful workflow automation platform
+- **[Qdrant](https://qdrant.tech/)**: For the high-performance vector database
+- **[FastAPI](https://fastapi.tiangolo.com/)**: For the modern, fast web framework
+- **[React Team](https://react.dev/)**: For the excellent frontend framework
+- **[Docker](https://www.docker.com/)**: For containerization technology
+- **[PostgreSQL](https://www.postgresql.org/)**: For the robust database system
+- **[Redis](https://redis.io/)**: For caching and task queue capabilities
+- **[Material-UI](https://mui.com/)**: For the beautiful React component library
+- **[Open Source Community](https://opensource.org/)**: For various dependencies, tools, and inspiration
+
+### Special Thanks
+
+- **Enterprise AI Community**: For feedback and real-world use case validation
+- **Privacy Advocates**: For emphasizing the importance of local AI deployment
+- **Apple Silicon Developers**: For pushing the boundaries of on-device AI performance
+- **Contributors**: Everyone who has contributed code, documentation, bug reports, and feature requests
+
+---
+
+## 📞 Support & Community
+
+- **Documentation**: [Full documentation](https://docs.onpremai.com) (coming soon)
+- **Issues**: [GitHub Issues](https://github.com/your-org/OnPremAI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/OnPremAI/discussions)
+- **Discord**: [OnPremAI Community](https://discord.gg/onpremai) (coming soon)
+
+---
+
+*Built with ❤️ for enterprises who value data privacy and AI innovation*
