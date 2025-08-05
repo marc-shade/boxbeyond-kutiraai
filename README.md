@@ -4,7 +4,7 @@
 
 > **Enterprise-grade AI platform for complete local deployment with privacy-first architecture**
 
-OnPremAI is a comprehensive, open-source platform that enables developers and enterprises to run AI workloads entirely on-premises. From dataset generation and LLM fine-tuning to enterprise process integration - all while keeping your data completely private and secure.
+OnPremAI is your powerful, open-source sidekick for all things AI—right on your turf! From building datasets and tuning language models to connecting every part of your business, you’re in full control. Keep your data private, your workflows seamless, and bring enterprise AI to life—on your terms, every step of the way.
 
 ---
 
@@ -26,7 +26,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 - **Local Fine-tuning**: Train LLMs on your proprietary data using Apple Silicon optimization (MLX)
 - **Agentic Workflows**: Create intelligent multi-agent workflows powered by CrewAI
 - **Process Integration**: Seamlessly integrate AI into enterprise processes with n8n workflows
-- **Vector Store**: Built-in Qdrant vector database for RAG and semantic search
+- **Vector Store**: Integrated Qdrant vector database for RAG and semantic search
 
 ---
 
@@ -131,12 +131,15 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 - **Hardware**: Apple Silicon Mac (M1/M2/M3) recommended for MLX fine-tuning optimization
 - **Software**:
+  - [Python 3.12+](https://www.python.org/downloads/) - Required for backend services
   - [Ollama](https://ollama.ai/download) - Required for local LLM serving
   - [Docker Desktop](https://www.docker.com/products/docker-desktop/) - Required for containerized services
   - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html) - Required for fine-tuning service
   - [Node.js and npm](https://nodejs.org/en/download/package-manager) - Required for frontend development
-- **Memory**: 16GB RAM minimum, 32GB+ recommended for large model fine-tuning
-- **Storage**: 50GB+ free space for models, databases, and training data
+  - [DBeaver](https://dbeaver.io/download/) or similar database client - Optional for database inspection
+- **HuggingFace Account**:
+  - [HuggingFace API Token](https://huggingface.co/settings/tokens) with access to models you plan to fine-tune
+  - Ensure token has access to gated models if using restricted models
 - **Network**: Internet connection required for initial model downloads from HuggingFace
 
 ### Installation
@@ -145,7 +148,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/OnPremAI.git
+git clone https://github.com/daniel-manickam/OnPremAI.git
 cd OnPremAI
 
 # Configure environment
@@ -162,6 +165,7 @@ The `start.sh` script will:
 - Start all Docker services (databases, APIs, frontend)
 - Set up the fine-tuning service with MLX
 - Import pre-built n8n workflows
+- Install HuggingFace Hub library with optimized download capabilities for faster model downloads
 - Verify all services are running
 - Provide access URLs
 
@@ -169,11 +173,18 @@ The `start.sh` script will:
 
 After the platform is running, you need to create the following credentials in n8n (http://localhost:5678):
 
-1. **Google Drive API** - For document access from Google Drive
-2. **HTTP Request Credentials** - For OnPremAI Product API integration (http://localhost:8200)
-3. **HTTP Request Credentials** - For OnPremAI Workflow Engine integration (http://localhost:8100)
-4. **Qdrant API** - For vector database operations (http://localhost:6333)
-5. **Ollama API** - For local LLM integration (http://localhost:11434)
+1. **Google Drive OAuth2 account** - For document access from Google Drive
+   - Follow setup guide: https://docs.n8n.io/integrations/builtin/credentials/google/
+2. **PostgreSQL account** - For database integration
+   - Host: `host.docker.internal`
+   - Port: `5434` (Product DB) or `5435` (Workflow DB)
+3. **Qdrant API account** - For vector database operations
+   - Qdrant URL: `http://host.docker.internal:6333`
+   - API Key: Not required (leave empty)
+4. **Ollama account** - For local LLM integration
+   - Base URL: `http://host.docker.internal:11434`
+
+**Important**: After creating these credentials, you must go to each of the 6 pre-built workflows and reselect the appropriate credentials in their respective nodes for the workflows to function properly.
 
 #### Pre-built Workflows
 
@@ -203,7 +214,7 @@ OnPremAI provides comprehensive dataset generation capabilities for fine-tuning:
 - **Quality Control**: Review and edit generated Q&A pairs before training
 - **Batch Processing**: Handle large document collections efficiently
 
-**Supported Formats**: PDF, DOCX, TXT, MD, HTML
+**Supported Formats**: PDF, TXT
 **Output Formats**: JSONL optimized for LLaMA 3.2, Mistral, and custom model templates
 
 ### 4.2 Fine-tuning LLM
@@ -211,11 +222,11 @@ OnPremAI provides comprehensive dataset generation capabilities for fine-tuning:
 Enterprise-grade model fine-tuning with Apple Silicon optimization:
 
 - **MLX Integration**: Native Apple Silicon acceleration for 3-5x faster training
-- **Model Support**: LLaMA 3.2, LLaMA 3.1, Mistral 7B, and custom models
+- **Model Support**: MLX-community models (e.g., mlx-community/Llama-3.2-3B-Instruct-4bit, mlx-community/Mistral-7B-Instruct-v0.3-4bit)
 - **LoRA Fine-tuning**: Efficient parameter-efficient training
-- **Real-time Monitoring**: Track training progress, loss curves, and metrics
+- **Progress Monitoring**: Track training progress in real-time, monitor loss curves through logs
 - **Automatic Deployment**: Deploy fine-tuned models directly to Ollama
-- **Adapter Management**: Save and version model adapters
+- **LoRA Adapters**: Generate and save LoRA adapters during fine-tuning process
 
 **Process Flow**:
 1. Upload dataset (JSONL format)
@@ -261,7 +272,7 @@ Powered by n8n for enterprise process automation:
 
 ### 4.5 Vector Store
 
-Built-in Qdrant vector database for semantic search and RAG:
+Integrated Qdrant vector database for semantic search and RAG:
 
 - **Qdrant Dashboard**: Web interface accessible at http://localhost:6333/dashboard
 - **Embedding Management**: Store and query document embeddings via n8n workflows
@@ -500,15 +511,6 @@ pytest e2e_tests/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### MIT License Summary
-
-- ✅ Commercial use
-- ✅ Modification
-- ✅ Distribution
-- ✅ Private use
-- ❌ Liability
-- ❌ Warranty
-
 ---
 
 ## 🙏 Acknowledgments
@@ -541,9 +543,6 @@ OnPremAI is built on the shoulders of giants. We thank the following projects an
 ## 📞 Support & Community
 
 - **Documentation**: [Full documentation](https://docs.onpremai.com) (coming soon)
-- **Issues**: [GitHub Issues](https://github.com/your-org/OnPremAI/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/OnPremAI/discussions)
-- **Discord**: [OnPremAI Community](https://discord.gg/onpremai) (coming soon)
 
 ---
 
