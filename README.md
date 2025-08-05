@@ -447,7 +447,7 @@ ws.onmessage = (event) => {
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+Contributions from the community are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ### Development Guidelines
 
@@ -515,7 +515,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-OnPremAI is built on the shoulders of giants. We thank the following projects and communities:
+OnPremAI is built on the shoulders of giants. Special thanks to the following projects and communities:
 
 - **[Apple MLX Team](https://github.com/ml-explore/mlx)**: For the excellent machine learning framework optimized for Apple Silicon
 - **[Hugging Face](https://huggingface.co/)**: For model hosting, transformers library, and democratizing AI
@@ -542,8 +542,8 @@ OnPremAI is built on the shoulders of giants. We thank the following projects an
 
 ## 📞 Support & Community
 
-- **Documentation**: [Full documentation](https://docs.onpremai.com) (coming soon)
+- **Documentation**: This README serves as the primary documentation
 
 ---
 
-*Built with ❤️ for enterprises who value data privacy and AI innovation*
+*Built with ❤️ for the community who value data privacy and AI innovation*
