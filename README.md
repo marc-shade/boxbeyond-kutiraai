@@ -76,36 +76,8 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 - **Ollama**: (Port: 11434) - Local LLM server
 - **MLX Framework**: Apple Silicon ML optimization
 - **Hugging Face Integration**: Model hub access
-
-### Technology Stack
-
-#### **Backend Technologies**
-- **Python 3.12**: Core backend language
-- **FastAPI**: High-performance API framework
-- **SQLAlchemy**: Database ORM
-- **Celery**: Distributed task queue
-- **CrewAI**: Multi-agent AI framework
-- **MLX**: Apple Silicon ML framework
-
-#### **Frontend Technologies**
-- **React 18**: Modern UI framework
-- **Vite**: Fast build tool
-- **Material-UI**: Component library
-- **WebSocket**: Real-time communication
-
-#### **Infrastructure**
-- **Docker**: Containerization
-- **PostgreSQL**: Primary database
-- **Redis**: Caching and task queue
-- **Qdrant**: Vector database
-- **Ollama**: Local LLM server
-
-#### **AI/ML Stack**
-- **Ollama**: Local LLM server
-- **Hugging Face**: Model hub and API
-- **MLX**: Apple Silicon optimization
-- **LangChain**: LLM application framework
-- **LoRA**: Efficient fine-tuning technique
+- **CrewAI**: Multi-agent workflow orchestration
+- **n8n LangChain Nodes**: LLM integration and RAG workflows (via n8n)
 
 ### Port Configuration
 
