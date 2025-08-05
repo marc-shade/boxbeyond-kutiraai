@@ -14,11 +14,11 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 ### Key Principles
 
-- **🔒 Complete Local Deployment**: Every component runs on your infrastructure - no external dependencies for core functionality
+- **🔒 Complete Local Deployment**: Every component runs on your infrastructure - minimal external dependencies (only HuggingFace API for model downloads)
 - **📊 End-to-End AI Pipeline**: From raw documents to fine-tuned models to enterprise workflows
 - **🚀 Easy Installation**: Single command deployment with containerized, modular architecture
 - **🔧 Modular Design**: Each service is independently deployable and scalable
-- **🏢 Enterprise Ready**: Built for production workloads with monitoring, logging, and security
+- **🏢 Production Foundation**: Microservices architecture with health monitoring, real-time dashboards, and security-conscious design
 
 ### What Makes OnPremAI Different
 
@@ -41,7 +41,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 #### **Frontend Layer**
 - **Technology**: React 18 + Vite + Material-UI
 - **Port**: 3000
-- **Features**: Fine-tuning UI, dataset management, workflow builder, real-time monitoring
+- **Features**: Fine-tuning UI, dataset management, agentic workflow configuration, real-time dashboard monitoring
 
 #### **API Services Layer**
 
@@ -129,14 +129,15 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 ### Prerequisites
 
-- **Hardware**: Apple Silicon Mac (M1/M2/M3) recommended for optimal performance
+- **Hardware**: Apple Silicon Mac (M1/M2/M3) recommended for MLX fine-tuning optimization
 - **Software**:
-  - [Ollama](https://ollama.ai/download)
-  - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-  - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html)
-  - [Node.js and npm](https://nodejs.org/en/download/package-manager)
-- **Memory**: 16GB RAM minimum, 32GB+ recommended for large models
-- **Storage**: 50GB+ free space for models and data
+  - [Ollama](https://ollama.ai/download) - Required for local LLM serving
+  - [Docker Desktop](https://www.docker.com/products/docker-desktop/) - Required for containerized services
+  - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html) - Required for fine-tuning service
+  - [Node.js and npm](https://nodejs.org/en/download/package-manager) - Required for frontend development
+- **Memory**: 16GB RAM minimum, 32GB+ recommended for large model fine-tuning
+- **Storage**: 50GB+ free space for models, databases, and training data
+- **Network**: Internet connection required for initial model downloads from HuggingFace
 
 ### Installation
 
@@ -150,7 +151,8 @@ cd OnPremAI
 # Configure environment
 cp .env.example .env
 # Edit .env file with your configuration
-# Required: Set HUGGINGFACE_API_TOKEN and database passwords
+# Required: Set HUGGINGFACE_API_TOKEN for model downloads and image generation
+# Optional: Customize database passwords and other settings
 
 # Start the entire platform
 ./start.sh
@@ -168,9 +170,10 @@ The `start.sh` script will:
 After the platform is running, you need to create the following credentials in n8n (http://localhost:5678):
 
 1. **Google Drive API** - For document access from Google Drive
-2. **OnPremAI Product API** - For dataset management integration
-3. **OnPremAI Workflow Engine** - For agentic workflow integration
-4. **Local File System** - For local document processing
+2. **HTTP Request Credentials** - For OnPremAI Product API integration (http://localhost:8200)
+3. **HTTP Request Credentials** - For OnPremAI Workflow Engine integration (http://localhost:8100)
+4. **Qdrant API** - For vector database operations (http://localhost:6333)
+5. **Ollama API** - For local LLM integration (http://localhost:11434)
 
 #### Pre-built Workflows
 
@@ -178,12 +181,12 @@ OnPremAI includes 6 pre-configured n8n workflows:
 
 | Workflow Name | Purpose | Description |
 |---------------|---------|-------------|
-| **Dataset Generator - Google Drive** | Document Processing | Extracts documents from Google Drive, chunks them, and generates Q&A pairs |
-| **Dataset Generator - Local Drive** | Document Processing | Processes local documents and creates training datasets |
-| **Dataset Generator Sub Process** | Data Processing | Handles document chunking and Q&A generation logic |
-| **Agentic Workflow** | AI Orchestration | Executes CrewAI-based multi-agent workflows |
-| **RAG Workflow** | Knowledge Retrieval | Implements Retrieval-Augmented Generation workflows |
-| **Update Knowledge Base** | Vector Store Management | Updates and manages Qdrant vector embeddings |
+| **Dataset Generator - Google Drive** | Document Processing | Extracts documents from Google Drive, chunks them, and generates Q&A pairs for fine-tuning |
+| **Dataset Generator - Local Drive** | Document Processing | Processes local documents and creates training datasets with Q&A generation |
+| **Dataset Generator Sub Process** | Data Processing | Reusable subprocess for document chunking and Q&A generation logic |
+| **Agentic Workflow** | AI Orchestration | Executes CrewAI-based multi-agent workflows via HTTP integration |
+| **RAG Workflow** | Knowledge Retrieval | Implements Retrieval-Augmented Generation with Qdrant vector search |
+| **Update Knowledge Base** | Vector Store Management | Updates and manages Qdrant vector embeddings with document processing |
 
 ---
 
@@ -260,18 +263,18 @@ Powered by n8n for enterprise process automation:
 
 Built-in Qdrant vector database for semantic search and RAG:
 
-- **Qdrant Dashboard**: Web interface for managing vector collections
-- **Embedding Management**: Store and query document embeddings
-- **Semantic Search**: Find similar documents and content
-- **RAG Implementation**: Retrieval-Augmented Generation workflows
-- **Collection Management**: Organize embeddings by project or domain
-- **Performance Monitoring**: Track query performance and storage metrics
+- **Qdrant Dashboard**: Web interface accessible at http://localhost:6333/dashboard
+- **Embedding Management**: Store and query document embeddings via n8n workflows
+- **Semantic Search**: Find similar documents and content using vector similarity
+- **RAG Implementation**: Retrieval-Augmented Generation workflows with Ollama embeddings
+- **Collection Management**: Organize embeddings by project or domain (e.g., "rag_collection")
+- **n8n Integration**: Direct integration with Update Knowledge Base and RAG workflows
 
-**Features**:
-- High-performance vector similarity search
-- Metadata filtering and hybrid search
-- Scalable storage for large document collections
-- Integration with fine-tuning and workflow services
+**Current Implementation**:
+- Qdrant vector store running on port 6333
+- Integration with n8n workflows for embedding operations
+- Uses Ollama "nomic-embed-text:latest" model for embeddings
+- Pre-configured collections for RAG workflows
 
 ---
 
@@ -279,12 +282,43 @@ Built-in Qdrant vector database for semantic search and RAG:
 
 OnPremAI is built on four core architectural principles:
 
-- **Private Data**: All processing happens locally - no data leaves your environment
-- **Local LLMs**: Run and fine-tune models entirely on your hardware
-- **End-to-end AI**: Complete pipeline from data ingestion to model deployment
-- **Apple Silicon First**: Optimized for M1/M2/M3 chips with MLX framework
+- **Private Data**: All processing happens locally - minimal external dependencies (only HuggingFace for model downloads)
+- **Local LLMs**: Run and fine-tune models entirely on your hardware using Ollama and MLX
+- **End-to-end AI**: Complete pipeline from data ingestion to model deployment and workflow integration
+- **Apple Silicon First**: Optimized for M1/M2/M3 chips with MLX framework for efficient fine-tuning
 
-This ensures complete data sovereignty while providing enterprise-grade AI capabilities.
+This ensures data sovereignty while providing a complete AI development and deployment platform.
+
+---
+
+## ⚠️ Current Limitations & Future Enhancements
+
+### Current State
+OnPremAI provides a solid foundation for local AI development with the following current limitations:
+
+**Security & Authentication**
+- No authentication system implemented (development mode)
+- APIs are open without rate limiting
+- No HTTPS/TLS configuration
+
+**Monitoring & Logging**
+- Basic health checks and dashboard monitoring
+- No centralized logging aggregation
+- No metrics collection (Prometheus/Grafana)
+- No alerting system
+
+**High Availability**
+- Single instance deployment
+- No load balancing or clustering
+- No automated backup/disaster recovery
+
+### Planned Enhancements
+- **Authentication & Authorization**: OAuth2, RBAC, API key management
+- **Enterprise Security**: HTTPS, rate limiting, audit logging
+- **Advanced Monitoring**: Prometheus metrics, Grafana dashboards, alerting
+- **High Availability**: Load balancing, clustering, automated backups
+- **CI/CD Integration**: Automated testing, deployment pipelines
+- **Model Registry**: Centralized model versioning and management
 
 ---
 
@@ -378,14 +412,12 @@ GET    /api/v1/executions/{id}            # Get execution details
 
 ### Authentication
 
-Most API endpoints require authentication. Set up API keys in your environment:
+**Current State**: The platform currently operates without authentication for development ease. All API endpoints are accessible without authentication.
 
-```bash
-# Environment variables
-PRODUCT_API_KEY=your_product_api_key
-WORKFLOW_API_KEY=your_workflow_api_key
-N8N_API_KEY=your_n8n_api_key
-```
+**Production Deployment**: For production use, implement authentication by:
+- Adding API key middleware to FastAPI services
+- Configuring n8n with user management and JWT tokens
+- Setting up environment variables for API keys
 
 ### WebSocket Connections
 
