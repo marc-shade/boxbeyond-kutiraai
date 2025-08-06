@@ -131,6 +131,12 @@ cp .env.example .env
 
 # Start the entire platform
 ./start.sh
+
+# For faster subsequent starts (skip frontend rebuild)
+./start.sh --skip-frontend-build
+
+# View all available options
+./start.sh --help
 ```
 
 The `start.sh` script will:
@@ -157,6 +163,30 @@ After the platform is running, you need to create the following credentials in n
    - Base URL: `http://host.docker.internal:11434`
 
 **Important**: After creating these credentials, you must go to each of the 6 pre-built workflows and reselect the appropriate credentials in their respective nodes for the workflows to function properly.
+
+### Start Script Options
+
+The `start.sh` script supports several options for different use cases:
+
+```bash
+# Full startup (default) - rebuilds frontend and auto-imports missing workflows
+./start.sh
+
+# Fast startup - skip frontend rebuild (for subsequent starts)
+./start.sh --skip-frontend-build
+
+# View all available options
+./start.sh --help
+```
+
+**Options:**
+- `--skip-frontend-build`: Skip frontend rebuild for faster startup (uses existing build)
+- `--help, -h`: Show help message with all available options
+
+**Use Cases:**
+- **First time setup**: Use `./start.sh` (full build)
+- **Development**: Use `./start.sh --skip-frontend-build` for faster restarts
+- **Troubleshooting**: Use `./start.sh --help` to see all options
 
 #### Pre-built Workflows
 

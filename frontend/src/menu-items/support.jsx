@@ -14,15 +14,7 @@ const support = {
   title: 'Support',
   type: 'group',
   children: [
-    {
-      id: 'documentation',
-      title: 'Documentation',
-      type: 'item',
-      url: 'documentation',
-      icon: icons.SnippetsOutlined,
-      external: false,
-      target: false
-    }
+    // Documentation link removed
   ]
 };
 

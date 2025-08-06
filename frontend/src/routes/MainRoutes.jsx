@@ -12,7 +12,6 @@ const WorkflowConfigPage = Loadable(lazy(() => import('pages/agentic-workflow/Wo
 const WorkflowExecutionPage = Loadable(lazy(() => import('pages/agentic-workflow/WorkflowExecutionPage')));
 const FineTunePage = Loadable(lazy(() => import('pages/fine-tuning/FineTunePage')));
 const ImageGenerator = Loadable(lazy(() => import('pages/utilities/ImageGenerator')));
-const Documentation = Loadable(lazy(() => import('pages/utilities/Documentation')));
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -54,10 +53,6 @@ const MainRoutes = {
     {
       path: 'imagegen',
       element: <ImageGenerator />
-    },
-    {
-      path: 'documentation',
-      element: <Documentation />
     }
   ]
 };
