@@ -143,7 +143,7 @@ The `start.sh` script will:
 - Start all Docker services (databases, APIs, frontend)
 - Set up the fine-tuning service with MLX
 - Import pre-built n8n workflows
-- Install HuggingFace Hub library with optimized download capabilities for faster model downloads
+- Install `huggingface_hub[hf_transfer]` for 3-5x faster model downloads from HuggingFace
 - Verify all services are running
 - Provide access URLs
 
@@ -163,21 +163,6 @@ After the platform is running, you need to create the following credentials in n
    - Base URL: `http://host.docker.internal:11434`
 
 **Important**: After creating these credentials, you must go to each of the 6 pre-built workflows and reselect the appropriate credentials in their respective nodes for the workflows to function properly.
-
-### Start Script Options
-
-The `start.sh` script supports several options for different use cases:
-
-```bash
-# Full startup (default) - rebuilds frontend and auto-imports missing workflows
-./start.sh
-
-# Fast startup - skip frontend rebuild (for subsequent starts)
-./start.sh --skip-frontend-build
-
-# View all available options
-./start.sh --help
-```
 
 **Options:**
 - `--skip-frontend-build`: Skip frontend rebuild for faster startup (uses existing build)
@@ -225,6 +210,7 @@ Enterprise-grade model fine-tuning with Apple Silicon optimization:
 
 - **MLX Integration**: Native Apple Silicon acceleration for 3-5x faster training
 - **Model Support**: MLX-community models (e.g., mlx-community/Llama-3.2-3B-Instruct-4bit, mlx-community/Mistral-7B-Instruct-v0.3-4bit)
+- **Fast Model Downloads**: Uses `huggingface_hub[hf_transfer]` for 3-5x faster model downloads from HuggingFace
 - **LoRA Fine-tuning**: Efficient parameter-efficient training
 - **Progress Monitoring**: Track training progress in real-time, monitor loss curves through logs
 - **Automatic Deployment**: Deploy fine-tuned models directly to Ollama
