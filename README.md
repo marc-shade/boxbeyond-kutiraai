@@ -106,7 +106,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
   - [Python 3.12+](https://www.python.org/downloads/) - Required for backend services
   - [Ollama](https://ollama.ai/download) - Required for local LLM serving
   - [Docker Desktop](https://www.docker.com/products/docker-desktop/) - Required for containerized services
-  - [Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html) - Required for fine-tuning service
+  - Python 3.12+ with venv support - Required for fine-tuning service (uses built-in venv)
   - [Node.js and npm](https://nodejs.org/en/download/package-manager) - Required for frontend development
   - [DBeaver](https://dbeaver.io/download/) or similar database client - Optional for database inspection
 - **HuggingFace Account**:
@@ -465,21 +465,33 @@ Contributions from the community are welcome! Please see the [Contributing Guide
 git clone https://github.com/daniel-manickam/OnPremAI.git
 cd OnPremAI
 
-# Start databases only
+# Create .env file from example
+cp .env.example .env
+# Edit .env with your configuration (especially HUGGINGFACE_API_TOKEN)
+
+# Start infrastructure services only
 docker compose up -d postgres-product postgres-workflow postgres-n8n redis qdrant
 
-# Setup Python environment
-conda create -n onpremai python=3.12
-conda activate onpremai
-pip install -r requirements.txt
+# Setup Python environment for APIs
+python3 -m venv onpremai_env
+source onpremai_env/bin/activate
+
+# Install dependencies for each service
+pip install -r product_api/requirements.txt
+pip install -r workflow_engine/requirements.txt
 
 # Setup frontend
 cd frontend && npm install && npm run dev
 
 # Run individual services for development
+# Terminal 1: Product API
 cd product_api && uvicorn app.main:app --reload --port 8200
-cd workflow_engine && uvicorn src.main:app --reload --port 8100
-cd fine_tune_service && uvicorn app.main:app --reload --port 8400
+
+# Terminal 2: Workflow Engine
+cd workflow_engine && uvicorn src.workflow_engine.api:app --reload --port 8100
+
+# Terminal 3: Fine-tuning Service (setup.sh creates its own venv)
+cd fine_tune_service && ./setup.sh
 ```
 
 ### Code Quality
