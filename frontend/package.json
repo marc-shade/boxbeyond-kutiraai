@@ -1,8 +1,8 @@
 {
-  "name": "mantis-free-react-admin-template",
-  "version": "1.3.0",
+  "name": "kutiraai-frontend",
+  "version": "1.0.0",
   "private": true,
-  "homepage": "https://mantisdashboard.io/free",
+  "homepage": "https://github.com/daniel-manickam/KutiraAI",
   "author": {
     "name": "CodedThemes",
     "email": "codedthemes@gmail.com",

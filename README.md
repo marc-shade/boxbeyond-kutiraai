@@ -1,16 +1,16 @@
-# OnPremAI
+# KutiraAI
 
-![OnPremAI Logo](onpremai_logo.jpg)
+![KutiraAI Logo](kutiraai_logo.jpg)
 
 > **Enterprise-grade AI platform for complete local deployment with privacy-first architecture**
 
-OnPremAI is your powerful, open-source sidekick for all things AI—right on your turf! From building datasets and tuning language models to connecting every part of your business, you’re in full control. Keep your data private, your workflows seamless, and bring enterprise AI to life—on your terms, every step of the way.
+KutiraAI is your powerful, open-source sidekick for all things AI—right on your turf! From building datasets and tuning language models to connecting every part of your business, you’re in full control. Keep your data private, your workflows seamless, and bring enterprise AI to life—on your terms, every step of the way.
 
 ---
 
 ## 🌟 Introduction
 
-OnPremAI was designed with a core philosophy: **your data should never leave your infrastructure**. In an era where data privacy and security are paramount, OnPremAI provides a complete AI platform that runs entirely on your local infrastructure.
+KutiraAI was designed with a core philosophy: **your data should never leave your infrastructure**. In an era where data privacy and security are paramount, KutiraAI provides a complete AI platform that runs entirely on your local infrastructure.
 
 ### Key Principles
 
@@ -20,7 +20,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 - **🔧 Modular Design**: Each service is independently deployable and scalable
 - **🏢 Production Foundation**: Microservices architecture with health monitoring, real-time dashboards, and security-conscious design
 
-### What Makes OnPremAI Different
+### What Makes KutiraAI Different
 
 - **Dataset Generation**: Automatically generate training datasets from your documents (Google Drive, local files)
 - **Local Fine-tuning**: Train LLMs on your proprietary data using Apple Silicon optimization (MLX)
@@ -34,7 +34,7 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 ### High-Level Architecture
 
-![OnPremAI Architecture](OnPremAI-Arch.png)
+![KutiraAI Architecture](KutiraAI-Arch.png)
 
 ### Service Architecture
 
@@ -120,8 +120,8 @@ OnPremAI was designed with a core philosophy: **your data should never leave you
 
 ```bash
 # Clone the repository
-git clone https://github.com/daniel-manickam/OnPremAI.git
-cd OnPremAI
+git clone https://github.com/daniel-manickam/boxbeyond-kutiraai.git
+cd boxbeyond-kutiraai
 
 # Configure environment
 cp .env.example .env
@@ -175,7 +175,7 @@ After the platform is running, you need to create the following credentials in n
 
 #### Pre-built Workflows
 
-OnPremAI includes 6 pre-configured n8n workflows:
+KutiraAI includes 6 pre-configured n8n workflows:
 
 | Workflow Name | Purpose | Description |
 |---------------|---------|-------------|
@@ -192,7 +192,7 @@ OnPremAI includes 6 pre-configured n8n workflows:
 
 ### 4.1 Dataset Generation
 
-OnPremAI provides comprehensive dataset generation capabilities for fine-tuning:
+KutiraAI provides comprehensive dataset generation capabilities for fine-tuning:
 
 - **Multi-Source Support**: Read documents from Google Drive or local file systems via n8n workflows
 - **Intelligent Chunking**: Automatically split documents into optimal chunks for training
@@ -277,23 +277,10 @@ Integrated Qdrant vector database for semantic search and RAG:
 
 ---
 
-## 🏛️ Architecture Philosophy
-
-OnPremAI is built on four core architectural principles:
-
-- **Private Data**: All processing happens locally - minimal external dependencies (only HuggingFace for model downloads)
-- **Local LLMs**: Run and fine-tune models entirely on your hardware using Ollama and MLX
-- **End-to-end AI**: Complete pipeline from data ingestion to model deployment and workflow integration
-- **Apple Silicon First**: Optimized for M1/M2/M3 chips with MLX framework for efficient fine-tuning
-
-This ensures data sovereignty while providing a complete AI development and deployment platform.
-
----
-
 ## ⚠️ Current Limitations & Future Enhancements
 
 ### Current State
-OnPremAI provides a solid foundation for local AI development with the following current limitations:
+KutiraAI provides a solid foundation for local AI development with the following current limitations:
 
 **Security & Authentication**
 - No authentication system implemented (development mode)
@@ -448,8 +435,8 @@ Contributions from the community are welcome! Please see the [Contributing Guide
 
 ```bash
 # Clone and setup
-git clone https://github.com/daniel-manickam/OnPremAI.git
-cd OnPremAI
+git clone https://github.com/daniel-manickam/KutiraAI.git
+cd KutiraAI
 
 # Create .env file from example
 cp .env.example .env
@@ -459,8 +446,8 @@ cp .env.example .env
 docker compose up -d postgres-product postgres-workflow postgres-n8n redis qdrant
 
 # Setup Python environment for APIs
-python3 -m venv onpremai_env
-source onpremai_env/bin/activate
+python3 -m venv kutiraai_env
+source kutiraai_env/bin/activate
 
 # Install dependencies for each service
 pip install -r product_api/requirements.txt
@@ -496,7 +483,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-OnPremAI is built on the shoulders of giants. Special thanks to the following projects and communities:
+KutiraAI is built on the shoulders of giants. Special thanks to the following projects and communities:
 
 - **[Apple MLX Team](https://github.com/ml-explore/mlx)**: For the excellent machine learning framework optimized for Apple Silicon
 - **[Hugging Face](https://huggingface.co/)**: For model hosting, transformers library, and democratizing AI
@@ -525,8 +512,8 @@ OnPremAI is built on the shoulders of giants. Special thanks to the following pr
 
 - **Documentation**: This README serves as the primary documentation
 - **Video Tutorials**: YouTube videos will be added shortly
-- **Issues**: [GitHub Issues](https://github.com/daniel-manickam/OnPremAI/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/daniel-manickam/OnPremAI/discussions)
+- **Issues**: [GitHub Issues](https://github.com/daniel-manickam/KutiraAI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/daniel-manickam/KutiraAI/discussions)
 
 ---
 

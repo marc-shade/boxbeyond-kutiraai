@@ -16,9 +16,9 @@ export default function AuthFooter() {
         textAlign={{ xs: 'center', sm: 'inherit' }}
       >
         <Typography variant="subtitle2" color="secondary">
-          This site is protected by{' '}
-          <Typography component={Link} variant="subtitle2" href="#mantis-privacy" target="_blank" underline="hover">
-            Privacy Policy
+          KutiraAI - Local AI Platform{' '}
+          <Typography component={Link} variant="subtitle2" href="https://github.com/daniel-manickam/KutiraAI" target="_blank" underline="hover">
+            Open Source
           </Typography>
         </Typography>
 
@@ -27,31 +27,31 @@ export default function AuthFooter() {
             variant="subtitle2"
             color="secondary"
             component={Link}
-            href="https://codedthemes.com"
+            href="https://github.com/daniel-manickam/KutiraAI/blob/main/LICENSE"
             target="_blank"
             underline="hover"
           >
-            Terms and Conditions
+            MIT License
           </Typography>
           <Typography
             variant="subtitle2"
             color="secondary"
             component={Link}
-            href="https://codedthemes.com"
+            href="https://github.com/daniel-manickam/KutiraAI"
             target="_blank"
             underline="hover"
           >
-            Privacy Policy
+            Documentation
           </Typography>
           <Typography
             variant="subtitle2"
             color="secondary"
             component={Link}
-            href="https://codedthemes.com"
+            href="https://github.com/daniel-manickam/KutiraAI/issues"
             target="_blank"
             underline="hover"
           >
-            CA Privacy Notice
+            Support
           </Typography>
         </Stack>
       </Stack>
