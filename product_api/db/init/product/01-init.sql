@@ -175,26 +175,3 @@ BEGIN
             EXECUTE FUNCTION update_updated_at_column();
     END IF;
 END $$;
-
--- Insert sample dataset template (users need to configure their own webhook URL)
-INSERT INTO dataset_master_table (
-    dataset_name,
-    dataset_workflow_url,
-    dataset_desc,
-    dataset_model_template,
-    dataset_status,
-    dataset_system_prompt,
-    dataset_origin,
-    dataset_domain,
-    dataset_filepath
-) VALUES (
-    'Sample Dataset',
-    'http://localhost:5678/webhook/your-webhook-id-here',
-    'A sample dataset for testing the N8N workflow integration. Update the webhook URL with your actual N8N webhook.',
-    'You are a helpful AI assistant. Please respond to the following query: {query}',
-    'Pending',
-    'You are an expert assistant that provides accurate and helpful responses.',
-    'local',
-    'general',
-    'sample_documents'
-) ON CONFLICT (dataset_name) DO NOTHING;
