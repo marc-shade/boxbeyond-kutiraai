@@ -9,7 +9,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -140,
+        -144,
         0
       ],
       "id": "ab01a445-98ef-4cd3-824e-78d875b34f4f",
@@ -23,7 +23,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        660,
+        672,
         0
       ],
       "id": "48e4ee8c-f3b9-4dff-a56b-7cac631d4499",
@@ -36,7 +36,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -360,
+        -368,
         0
       ],
       "id": "4daa2e15-483e-4836-94f4-6190c6417a59",
@@ -50,7 +50,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
       "position": [
-        60,
+        64,
         0
       ],
       "id": "1e9f98f6-17c0-429f-acdd-de04043c29d2",
@@ -67,14 +67,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmOllama",
       "typeVersion": 1,
       "position": [
-        140,
-        180
+        144,
+        192
       ],
       "id": "fc9dcf03-1b4f-423c-9827-63a8302a97ff",
       "name": "Mistral Model",
       "credentials": {
         "ollamaApi": {
-          "id": "iFXMTkBJ2tZZKutU",
+          "id": "fU2vWhh8CPJplHvk",
           "name": "Ollama account"
         }
       }
@@ -86,7 +86,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        448,
         0
       ],
       "id": "e76639c0-3dfd-49e1-8639-82982ed1efe0",
@@ -100,7 +100,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
       "position": [
-        860,
+        864,
         0
       ],
       "id": "38ec40d2-644a-4f1e-ae24-eca6c3846078",
@@ -118,26 +118,26 @@
       "type": "@n8n/n8n-nodes-langchain.lmOllama",
       "typeVersion": 1,
       "position": [
-        900,
-        180
+        912,
+        192
       ],
       "id": "8d7dd48e-0cb3-4e98-bbe2-b77d94e37f9a",
       "name": "Mistral Model1",
       "credentials": {
         "ollamaApi": {
-          "id": "iFXMTkBJ2tZZKutU",
+          "id": "fU2vWhh8CPJplHvk",
           "name": "Ollama account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "function splitIntoQAPairs(text, systemPrompt, modelTemplate) {\n    // Split the text into individual Q&A pairs\n    const pairs = text.split('\\n\\n').filter(pair => pair.trim().startsWith('Q:'));\n\n    // Process each pair\n    const jsonlData = pairs.map(pair => {\n        const [question, answer] = pair.split('\\nA:');\n\n        if (question && answer) {\n            // Remove the 'Q: ' prefix from the question\n            const cleanQuestion = question.replace('Q:', '').trim();\n            const cleanAnswer = answer.trim();\n\n            // Create the JSONL object\n            const jsonlObject = modelTemplate\n                .replace('{system_prompt}', systemPrompt)\n                .replace('{question}', cleanQuestion)\n                .replace('{answer}', cleanAnswer);\n\n            // Return the stringified JSONL object\n            return JSON.stringify(jsonlObject);\n        }\n    }).filter(Boolean);\n\n    // Join the JSONL objects with newlines\n    return jsonlData.join('\\n');\n}\n\n// Loop over input items and add a new field called 'qaPairs' to the JSON of each one\nfor (const item of $input.all()) {\n    const systemPrompt = '';\n    const modelTemplate = '<s>[INST] Question: {question} [/INST] {answer}</s>';\n    if (!item.json.qaPairs) {\n        item.json.qaPairs = '';\n    }\n    item.json.qaPairs = item.json.qaPairs + splitIntoQAPairs(item.json.text, systemPrompt, modelTemplate);\n}\n\nreturn $input.all();"
+        "jsCode": "function splitIntoQAPairs(text, systemPrompt, modelTemplate) {\n    // Split the text into individual Q&A pairs\n    const pairs = text.split('\\n\\n').filter(pair => pair.trim().startsWith('Q:'));\n\n    // Process each pair\n    const jsonlData = pairs.map(pair => {\n        const [question, answer] = pair.split('\\nA:');\n\n        if (question && answer) {\n            // Remove the 'Q: ' prefix from the question\n            const cleanQuestion = question.replace('Q:', '').trim();\n            const cleanAnswer = answer.trim();\n\n            // Create the JSONL object\n            const jsonlObject = modelTemplate\n                .replace('{system_prompt}', systemPrompt)\n                .replace('{question}', cleanQuestion)\n                .replace('{answer}', cleanAnswer);\n\n            // Return the stringified JSONL object\n            return JSON.stringify(jsonlObject);\n        }\n    }).filter(Boolean);\n\n    // Join the JSONL objects with newlines\n    return jsonlData.join('\\n');\n}\n\n// Loop over input items and add a new field called 'qaPairs' to the JSON of each one\nfor (const item of $input.all()) {\n    const systemPrompt = '';\n    const modelTemplate = $('Execute Workflow Trigger').item.json.input_params.modelTemplate;\n    if (!item.json.qaPairs) {\n        item.json.qaPairs = '';\n    }\n    item.json.qaPairs = item.json.qaPairs + splitIntoQAPairs(item.json.text, systemPrompt, modelTemplate);\n}\n\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1240,
+        1248,
         0
       ],
       "id": "3ef46a6d-ca96-4690-a370-5c609c94f0c8",
@@ -231,7 +231,7 @@
       "name": "Persist In DB",
       "credentials": {
         "postgres": {
-          "id": "XA5EK2QcBpdEUuJn",
+          "id": "0QdkoUibgokRIquu",
           "name": "Postgres account"
         }
       }
@@ -336,7 +336,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1640,
+        1648,
         0
       ],
       "id": "64d792d9-2209-4b5a-9839-afb9baad14c5",
@@ -344,7 +344,7 @@
       "alwaysOutputData": false,
       "credentials": {
         "postgres": {
-          "id": "XA5EK2QcBpdEUuJn",
+          "id": "0QdkoUibgokRIquu",
           "name": "Postgres account"
         }
       }
@@ -489,7 +489,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "24ac93b3-507d-4970-93ed-9143fb990c4b",
+  "versionId": "311ad199-f4d3-459f-9a8e-67fc1360ef05",
   "meta": {
     "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
   },

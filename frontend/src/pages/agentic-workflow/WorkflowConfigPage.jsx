@@ -320,9 +320,45 @@ const WorkflowConfigPage = () => {
 
   // Update the tasks section with cursor position tracking
   const [cursorPosition, setCursorPosition] = useState({
+    taskId: '',
+    field: '',
     start: 0,
     end: 0
   });
+
+  // Track cursor position for agent fields
+  const [agentCursorPosition, setAgentCursorPosition] = useState({
+    field: '',
+    start: 0,
+    end: 0
+  });
+
+  // Helper function to insert parameter into agent field
+  const insertParameterIntoAgentField = (agentId, field, parameterName) => {
+    const currentValue = agents[agentId]?.[field] || '';
+    const inputVariable = `{${parameterName}}`;
+    const newValue = insertTextAtCursor(
+      inputVariable,
+      currentValue,
+      agentCursorPosition.field === field ? agentCursorPosition.start : currentValue.length,
+      agentCursorPosition.field === field ? agentCursorPosition.end : currentValue.length
+    );
+    handleAgentChange(agentId, field, newValue);
+  };
+
+  // Helper function to insert parameter into task field
+  const insertParameterIntoTaskField = (taskId, field, parameterName) => {
+    const task = tasks.find(t => t.id === taskId);
+    const currentValue = task?.[field] || '';
+    const inputVariable = `{${parameterName}}`;
+    const newValue = insertTextAtCursor(
+      inputVariable,
+      currentValue,
+      cursorPosition.taskId === taskId && cursorPosition.field === field ? cursorPosition.start : currentValue.length,
+      cursorPosition.taskId === taskId && cursorPosition.field === field ? cursorPosition.end : currentValue.length
+    );
+    handleTaskChange(taskId, field, newValue);
+  };
 
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
@@ -445,6 +481,29 @@ const WorkflowConfigPage = () => {
               {/* Agent Details */}
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>Agent Details</Typography>
+
+                {/* Available Inputs for Agent */}
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Available Inputs (click to insert into focused field):
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  {workflow?.config?.inputs?.map(input => (
+                    <Chip
+                      key={input.name}
+                      label={input.name}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        if (agentCursorPosition.field) {
+                          insertParameterIntoAgentField(selectedAgent, agentCursorPosition.field, input.name);
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <TextField
@@ -452,6 +511,14 @@ const WorkflowConfigPage = () => {
                       label="Agent Name"
                       value={agents[selectedAgent]?.name || ''}
                       onChange={(e) => handleAgentChange(selectedAgent, 'name', e.target.value)}
+                      onSelect={(e) => {
+                        setAgentCursorPosition({
+                          field: 'name',
+                          start: e.target.selectionStart,
+                          end: e.target.selectionEnd
+                        });
+                      }}
+                      helperText="Click on available inputs above to insert parameters"
                     />
                   </Grid>
                   <Grid item xs={6}>
@@ -460,6 +527,14 @@ const WorkflowConfigPage = () => {
                       label="Role"
                       value={agents[selectedAgent]?.role || ''}
                       onChange={(e) => handleAgentChange(selectedAgent, 'role', e.target.value)}
+                      onSelect={(e) => {
+                        setAgentCursorPosition({
+                          field: 'role',
+                          start: e.target.selectionStart,
+                          end: e.target.selectionEnd
+                        });
+                      }}
+                      helperText="Click on available inputs above to insert parameters"
                     />
                   </Grid>
                   <Grid item xs={12}>
@@ -468,6 +543,14 @@ const WorkflowConfigPage = () => {
                       label="Goal"
                       value={agents[selectedAgent]?.goal || ''}
                       onChange={(e) => handleAgentChange(selectedAgent, 'goal', e.target.value)}
+                      onSelect={(e) => {
+                        setAgentCursorPosition({
+                          field: 'goal',
+                          start: e.target.selectionStart,
+                          end: e.target.selectionEnd
+                        });
+                      }}
+                      helperText="Click on available inputs above to insert parameters"
                     />
                   </Grid>
                   <Grid item xs={12}>
@@ -478,6 +561,14 @@ const WorkflowConfigPage = () => {
                       label="Backstory"
                       value={agents[selectedAgent]?.backstory || ''}
                       onChange={(e) => handleAgentChange(selectedAgent, 'backstory', e.target.value)}
+                      onSelect={(e) => {
+                        setAgentCursorPosition({
+                          field: 'backstory',
+                          start: e.target.selectionStart,
+                          end: e.target.selectionEnd
+                        });
+                      }}
+                      helperText="Click on available inputs above to insert parameters"
                     />
                   </Grid>
 
@@ -585,6 +676,15 @@ const WorkflowConfigPage = () => {
                               label="Task Name"
                               value={task.name}
                               onChange={(e) => handleTaskChange(task.id, 'name', e.target.value)}
+                              onSelect={(e) => {
+                                setCursorPosition({
+                                  taskId: task.id,
+                                  field: 'name',
+                                  start: e.target.selectionStart,
+                                  end: e.target.selectionEnd
+                                });
+                              }}
+                              helperText="Click on available inputs below to insert parameters"
                               sx={{ mb: 2 }}
                             />
                             <TextField
@@ -594,6 +694,15 @@ const WorkflowConfigPage = () => {
                               label="Expected Output"
                               value={task.expected_output}
                               onChange={(e) => handleTaskChange(task.id, 'expected_output', e.target.value)}
+                              onSelect={(e) => {
+                                setCursorPosition({
+                                  taskId: task.id,
+                                  field: 'expected_output',
+                                  start: e.target.selectionStart,
+                                  end: e.target.selectionEnd
+                                });
+                              }}
+                              helperText="Click on available inputs below to insert parameters"
                               sx={{ mb: 2 }}
                             />
                             <TextField
@@ -607,6 +716,8 @@ const WorkflowConfigPage = () => {
                               onSelect={(e) => {
                                 const target = e.target;
                                 setCursorPosition({
+                                  taskId: task.id,
+                                  field: 'description',
                                   start: target.selectionStart,
                                   end: target.selectionEnd
                                 });
@@ -624,19 +735,29 @@ const WorkflowConfigPage = () => {
                                   key={input.name}
                                   label={input.name}
                                   onClick={() => {
-                                    // Insert the input variable at cursor position
-                                    const inputVariable = `{${input.name}}`;
-                                    const newDescription = insertTextAtCursor(
-                                      inputVariable,
-                                      task.description || '',
-                                      cursorPosition.start,
-                                      cursorPosition.end
-                                    );
-                                    handleTaskChange(task.id, 'description', newDescription);
+                                    // Check if we have a focused field for this task
+                                    if (cursorPosition.taskId === task.id && cursorPosition.field) {
+                                      insertParameterIntoTaskField(task.id, cursorPosition.field, input.name);
 
-                                    // Add to inputs array if not already present
-                                    if (!task.inputs.includes(input.name)) {
-                                      handleTaskChange(task.id, 'inputs', [...task.inputs, input.name]);
+                                      // For description field, also add to inputs array if not already present
+                                      if (cursorPosition.field === 'description' && !task.inputs.includes(input.name)) {
+                                        handleTaskChange(task.id, 'inputs', [...task.inputs, input.name]);
+                                      }
+                                    } else {
+                                      // Fallback to description field if no specific field is focused
+                                      const inputVariable = `{${input.name}}`;
+                                      const newDescription = insertTextAtCursor(
+                                        inputVariable,
+                                        task.description || '',
+                                        task.description?.length || 0,
+                                        task.description?.length || 0
+                                      );
+                                      handleTaskChange(task.id, 'description', newDescription);
+
+                                      // Add to inputs array if not already present
+                                      if (!task.inputs.includes(input.name)) {
+                                        handleTaskChange(task.id, 'inputs', [...task.inputs, input.name]);
+                                      }
                                     }
                                   }}
                                   color={task.inputs.includes(input.name) ? "primary" : "default"}

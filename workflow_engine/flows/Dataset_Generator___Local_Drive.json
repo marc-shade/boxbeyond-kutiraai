@@ -63,8 +63,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -260,
-        100
+        -256,
+        112
       ]
     },
     {
@@ -78,19 +78,13 @@
       "typeVersion": 1,
       "position": [
         0,
-        20
+        32
       ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            {
-              "id": "9fb09382-aa28-4e7b-b329-d478912514b9",
-              "name": "chatInput",
-              "value": "={{ $json.text }}",
-              "type": "string"
-            },
             {
               "id": "01b0f8c7-28ed-4c66-bc85-6d689a742dba",
               "name": "data",
@@ -118,21 +112,21 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        300,
-        120
+        304,
+        128
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  // Get the input text\n  let text = item.json.chatInput;\n  \n  // Remove any non-printable characters\n  text = text.replace(/[^\\x20-\\x7E\\n]/g, \"\");\n\n  // Remove any JSON-like structures\n  text = text.replace(/\\{[^}]*\\}/g, \"\");\n\n  // Remove multiple consecutive newlines\n  text = text.replace(/\\n{3,}/g, \"\\n\\n\");\n\n  // Trim whitespace from the beginning and end\n  text = text.trim();\n\n  // Split the text into words\n  const words = text.split(/\\s+/);\n\n  // Initialize an array to hold the chunks\n  const chunks = [];\n\n  // Split into chunks of approximately 1000 words\n  for (let i = 0; i < words.length; i += 1000) {\n    const chunk = words.slice(i, i + 1000).join(' ');\n    chunks.push(chunk);\n  }\n\n  // Set the resulting array to item.json.chatInput\n  item.json.data = chunks;\n  // set the other data that we need\n  item.json.input_params =$('Webhook').first().json.body\n}\n\n\n\nreturn $input.all();"
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  // Get the input text\n  let text = item.json.data;\n  \n  // Remove any non-printable characters\n  text = text.replace(/[^\\x20-\\x7E\\n]/g, \"\");\n\n  // Remove any JSON-like structures\n  text = text.replace(/\\{[^}]*\\}/g, \"\");\n\n  // Remove multiple consecutive newlines\n  text = text.replace(/\\n{3,}/g, \"\\n\\n\");\n\n  // Trim whitespace from the beginning and end\n  text = text.trim();\n\n  // Split the text into words\n  const words = text.split(/\\s+/);\n\n  // Initialize an array to hold the chunks\n  const chunks = [];\n\n  // Split into chunks of approximately 1000 words\n  for (let i = 0; i < words.length; i += 1000) {\n    const chunk = words.slice(i, i + 1000).join(' ');\n    chunks.push(chunk);\n  }\n\n  // Set the resulting array to item.json.chatInput\n  item.json.data = chunks;\n  // set the other data that we need\n  item.json.input_params =$('Webhook').first().json.body\n}\n\n\n\nreturn $input.all();"
       },
       "id": "3000483b-6573-4d6a-b0de-35b70461c78c",
       "name": "Code",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        600,
-        120
+        608,
+        128
       ]
     },
     {
@@ -141,15 +135,17 @@
         "path": "304a31a4-99b0-473a-b439-7e349eb64d9a",
         "responseMode": "lastNode",
         "responseData": "noData",
-        "options": {}
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "7caea054-392b-45d2-a15b-5364de8cfd99",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -760,
-        -60
+        -768,
+        -64
       ],
       "webhookId": "304a31a4-99b0-473a-b439-7e349eb64d9a"
     },
@@ -165,8 +161,8 @@
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        -500,
-        100
+        -496,
+        112
       ]
     },
     {
@@ -184,8 +180,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        860,
-        120
+        864,
+        128
       ],
       "id": "9d1c8bf7-fcf6-4335-be6d-72bf2880473a",
       "name": "Execute Workflow"
@@ -195,8 +191,8 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -760,
-        280
+        -768,
+        288
       ],
       "id": "20e51e10-da5c-475d-b351-ca4f6b465675",
       "name": "When clicking ‘Test workflow’"
@@ -212,7 +208,7 @@
       "typeVersion": 1,
       "position": [
         0,
-        220
+        224
       ]
     }
   ],
@@ -318,7 +314,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "2984b74a-a533-4fda-ac97-5ccf4fbc01ca",
+  "versionId": "eedef3a5-7a8e-4be5-87a7-4404d4e28cba",
   "meta": {
     "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
   },

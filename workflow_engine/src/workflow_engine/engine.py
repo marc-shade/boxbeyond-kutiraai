@@ -11,6 +11,7 @@ from .exceptions import (
 )
 import os
 from . import crud
+from .template_engine import TemplateEngine
 
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
@@ -78,9 +79,10 @@ class WorkflowEngine:
     def __init__(self, db: Session):
         if db is None:
             raise WorkflowEngineError("Database session cannot be None")
-        
+
         self.db = db
         self.traces = None
+        self.template_engine = TemplateEngine()
         # Default LLM configuration - will be overridden by workflow-specific model
         self.default_llm_config = {
             "api_key": os.getenv("LLM_API_KEY", "nothing"),
@@ -166,18 +168,21 @@ class WorkflowEngine:
 
             logger.info(tasks_config)
 
-            # Create agents
+            # Create agents with parameter substitution
             agents = {}
             for agent_id, config in agents_config.items():
                 if not agent_id:
                     raise AgentConfigurationError("Agent ID cannot be empty")
 
+                # Apply parameter substitution to agent configuration
+                substituted_config = self.template_engine.substitute_parameters(config, inputs)
+
                 # Add workflow-specific LLM if not specified in config
-                if 'llm' not in config:
-                    config['llm'] = workflow_llm
-                
+                if 'llm' not in substituted_config:
+                    substituted_config['llm'] = workflow_llm
+
                 try:
-                    agents[agent_id] = Agent(**config)
+                    agents[agent_id] = Agent(**substituted_config)
                 except Exception as e:
                     raise AgentConfigurationError(f"Error creating agent {agent_id}: {str(e)}")
             
@@ -185,25 +190,30 @@ class WorkflowEngine:
             if tasks_config is None or len(tasks_config) == 0:
                 raise TaskConfigurationError("Tasks configuration cannot be empty")
                 
-            # Create tasks
+            # Create tasks with parameter substitution
             tasks = []
             for task in tasks_config:
                 if 'agent' not in task:
                     raise TaskConfigurationError("Task must specify an agent")
-                
-                agent_id = task.pop('agent')
+
+                # Make a copy to avoid modifying the original
+                task_copy = task.copy()
+                agent_id = task_copy.pop('agent')
                 if agent_id not in agents:
                     raise TaskConfigurationError(f"Agent '{agent_id}' not found")
-                
+
+                # Apply parameter substitution to task configuration
+                substituted_task = self.template_engine.substitute_parameters(task_copy, inputs)
+
                 # Add callback if tracing is enabled
                 if self.traces is not None:
-                    task['callback'] = lambda output, task_name=task['name']: \
+                    substituted_task['callback'] = lambda output, task_name=substituted_task['name']: \
                         self.add_trace(task_name, output)
-                
+
                 # Create task
-                task['agent'] = agents[agent_id]
+                substituted_task['agent'] = agents[agent_id]
                 try:
-                    tasks.append(Task(**task))
+                    tasks.append(Task(**substituted_task))
                 except Exception as e:
                     raise TaskConfigurationError(f"Error creating task: {str(e)}")
             

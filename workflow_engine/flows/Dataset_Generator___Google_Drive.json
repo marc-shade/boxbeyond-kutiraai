@@ -6,39 +6,11 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -40,
+        -48,
         240
       ],
       "id": "7e53305d-d129-4964-93fa-f388adeb6e87",
       "name": "When clicking ‘Test workflow’"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "chatInput",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        1720,
-        -520
-      ],
-      "id": "1b790fc6-72a0-48e3-975f-404268a39c93",
-      "name": "Split Out"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "chunk_array",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        2520,
-        -520
-      ],
-      "id": "5c1f54fe-ba31-4597-9fb7-9d9a4b77007b",
-      "name": "Split Out1"
     },
     {
       "parameters": {
@@ -51,7 +23,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -40,
+        -48,
         0
       ],
       "id": "7a2d1c85-eb40-4163-9904-f23c61fb76d8",
@@ -80,7 +52,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        440,
+        448,
         0
       ],
       "id": "057210de-39f1-4b69-9e30-b6223aa8a6f4",
@@ -179,7 +151,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        700,
+        704,
         0
       ],
       "id": "774e042d-750e-4d64-b07c-b7107f1033d7",
@@ -205,7 +177,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        980,
+        992,
         -80
       ],
       "id": "a2d91f7a-0c96-4102-99a3-0ef074635840",
@@ -224,113 +196,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1780,
-        60
+        1792,
+        64
       ],
       "id": "227bdb04-2010-4c9e-8344-932fc2f7d732",
       "name": "Split the text"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Your task is to divide the text into smaller, coherent chunks. Follow these steps: 1. Divide the text into chunks of approximately 500 words each. 2. Ensure each chunk maintains context and doesn't break mid-sentence or mid-paragraph. 3. Start each chunk with a delimiter '**CHUNK-1', '**CHUNK-2'. This is the text  {{ $json.chatInput }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.5,
-      "position": [
-        1920,
-        -520
-      ],
-      "id": "fe821dbd-76dd-4b3f-85f6-b9b30e13c35a",
-      "name": "Chunk Creator"
-    },
-    {
-      "parameters": {
-        "model": "mistral-7b-Q4:latest",
-        "options": {
-          "temperature": 0.1,
-          "numGpu": -1
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmOllama",
-      "typeVersion": 1,
-      "position": [
-        2000,
-        -340
-      ],
-      "id": "4ab26757-955f-44d9-9e4d-ed2d1881ab05",
-      "name": "Mistral Model",
-      "credentials": {
-        "ollamaApi": {
-          "id": "iFXMTkBJ2tZZKutU",
-          "name": "Ollama account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "function splitIntoChunks(text) {\n    // Split the text by the chunk delimiter\n    const chunks = text.split(/\\*\\*CHUNK-\\d+\\:\\s*/);\n    \n    // Remove any empty chunks and trim whitespace\n    const cleanChunks = chunks.filter(chunk => chunk.trim()).map(chunk => chunk.trim());\n    \n    // Add the chunk number back to each chunk\n    return cleanChunks.map((chunk, index) => `CHUNK-${index + 1}\\n\\n${chunk}`);\n}\n\n// Loop over input items and add a new field called 'chunk_array' to the JSON of each one\nfor (const item of $input.all()) {\n    item.json.chunk_array = splitIntoChunks(item.json.text);\n}\n\nreturn $input.all();"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2300,
-        -520
-      ],
-      "id": "248f2e5f-fe3c-431e-ae14-cbd544e6ba66",
-      "name": "Chunk Splitter"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=You are a climate change expert. Your task is to create factual, relevant Q&A pairs from the given text chunk. Follow these guidelines: 1. Read and understand the content of the provided chunk thoroughly. 2. Generate sufficient question-answer pairs based solely on the information in the chunk. 3. Ensure questions are clear, concise, and directly related to the content. 4. Provide answers that are accurate and based only on the information given. Answers need to be eloborate. 5. Avoid creating questions or answers that require information from outside the given chunk. 6. Format each Q&A pair as \"Q: [Question]\" and \"A: [Answer]\". Maintain this format without fail. 7. After each pair add a demiliter 'END_PAIR'\nText chunk \n  {{ $json.chunk_array }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.5,
-      "position": [
-        2720,
-        -520
-      ],
-      "id": "06689f8f-c117-4ab9-9336-1083f62c77b2",
-      "name": "Q&A Generator",
-      "retryOnFail": false
-    },
-    {
-      "parameters": {
-        "model": "mistral-7b-Q4:latest",
-        "options": {
-          "temperature": 0.1,
-          "numGpu": -1
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmOllama",
-      "typeVersion": 1,
-      "position": [
-        2800,
-        -340
-      ],
-      "id": "d6dc3bc6-8f69-4f2a-a098-f45a84140495",
-      "name": "Mistral Model1",
-      "credentials": {
-        "ollamaApi": {
-          "id": "iFXMTkBJ2tZZKutU",
-          "name": "Ollama account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "function splitIntoQAPairs(text, systemPrompt, modelTemplate) {\n    // Split the text into individual Q&A pairs\n    const pairs = text.split('END_PAIR');\n\n    // Process each pair\n    const jsonlData = pairs.map(pair => {\n        if (pair.length > 0) {\n          // Split each pair into question and answer\n          const [question, answer] = pair.split('A:');\n\n          if (question && answer) {\n            // Remove the 'Q: ' prefix from the question\n            const cleanQuestion = question.replace('Q:', '').trim();\n\n            // create the JSONL object\n            const jsonlObject = modelTemplate\n              .replace('{system_prompt}', systemPrompt)\n              .replace('{question}', cleanQuestion)\n              .replace('{answer}', answer);\n    \n            // Return the stringified JSONL object\n            return JSON.stringify(jsonlObject);\n          }\n        }\n    }).filter(Boolean);\n\n    // Join the JSONL objects with newlines\n    return jsonlData.join('\\n');\n}\n// Loop over input items and add a new field called 'myNewField' to the JSON of each one\n\nfor (const item of $input.all()) {\n  const systemPrompt = '';\n  const modelTemplate = '<s>[INST] {question} [/INST] {answer}</s>';\n  if (!item.json.qaPairs) {\n    item.json.qaPairs = ''\n  }\n  item.json.qaPairs = item.json.qaPairs + splitIntoQAPairs(item.json.text, systemPrompt, modelTemplate)\n}\n\nreturn $input.all();"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3100,
-        -520
-      ],
-      "id": "13f93c92-ee43-47e0-95ce-c386a9f835a9",
-      "name": "Q&A Splitter",
-      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -355,7 +225,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        220,
+        224,
         0
       ],
       "id": "d85803f0-8f72-4d37-bf1a-0c5274c6478c",
@@ -381,8 +251,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        980,
-        100
+        992,
+        112
       ],
       "id": "c0636675-0f10-4934-b2e2-ba39d88eff91",
       "name": "File Download As PDF",
@@ -402,7 +272,7 @@
       "typeVersion": 1,
       "position": [
         1280,
-        180
+        192
       ],
       "id": "14231414-8755-42c7-9772-4e6e69dcd88a",
       "name": "Extract from PDF"
@@ -426,8 +296,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        980,
-        280
+        992,
+        288
       ],
       "id": "889654d8-cd36-4e1a-bdba-360e2f116bfe",
       "name": "Download Spreasheet as PDF",
@@ -435,209 +305,6 @@
         "googleDriveOAuth2Api": {
           "id": "luNQOzK3RMAUxYG6",
           "name": "Google Drive account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "schema": {
-          "__rl": true,
-          "value": "public",
-          "mode": "list",
-          "cachedResultName": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "dataset_output_table",
-          "mode": "list",
-          "cachedResultName": "dataset_output_table"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "dataset_id": "={{ $('Webhook').item.json.body.dataset_id }}",
-            "jsonl_content": "={{ $json.qaPairs }}",
-            "chunk_text": "{{ $('Split Out').item.json.chunk_array }}",
-            "filename": "={{ $('List Files From Drive').item.json.name }}"
-          },
-          "matchingColumns": [
-            "id"
-          ],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "dataset_id",
-              "displayName": "dataset_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "chunk_text",
-              "displayName": "chunk_text",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "jsonl_content",
-              "displayName": "jsonl_content",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "filename",
-              "displayName": "filename",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        3300,
-        -520
-      ],
-      "id": "5adaeb7c-5ef8-4361-a6d0-1b2f5acd1c60",
-      "name": "Persist In DB",
-      "credentials": {
-        "postgres": {
-          "id": "XA5EK2QcBpdEUuJn",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "dataset_master_table",
-          "mode": "list",
-          "cachedResultName": "dataset_master_table"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "id": "={{ $('Webhook').item.json.body.dataset_id }}",
-            "dataset_status": "Success"
-          },
-          "matchingColumns": [
-            "id"
-          ],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "dataset_name",
-              "displayName": "dataset_name",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "dataset_workflow_url",
-              "displayName": "dataset_workflow_url",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "dataset_desc",
-              "displayName": "dataset_desc",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "dataset_model_template",
-              "displayName": "dataset_model_template",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "dataset_status",
-              "displayName": "dataset_status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "dataset_system_prompt",
-              "displayName": "dataset_system_prompt",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        3500,
-        -520
-      ],
-      "id": "65018760-3d47-45ab-b03e-2a2ac12dd7d7",
-      "name": "Update Status",
-      "credentials": {
-        "postgres": {
-          "id": "XA5EK2QcBpdEUuJn",
-          "name": "Postgres account"
         }
       }
     },
@@ -656,8 +323,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        1980,
-        60
+        1984,
+        64
       ],
       "id": "7776cbd1-a823-4731-86f0-8ad4430569ae",
       "name": "Execute Workflow"
@@ -691,8 +358,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1560,
-        60
+        1568,
+        64
       ],
       "id": "e1421940-6eb4-48bc-961f-90408cb0ca40",
       "name": "Merge Output"
@@ -705,7 +372,7 @@
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
       "position": [
-        1260,
+        1264,
         -80
       ],
       "id": "59a18e48-18e3-4fe0-8e86-c61e6f6ef66c",
@@ -719,28 +386,6 @@
         [
           {
             "node": "List Files From Drive",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Out": {
-      "main": [
-        [
-          {
-            "node": "Chunk Creator",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Out1": {
-      "main": [
-        [
-          {
-            "node": "Q&A Generator",
             "type": "main",
             "index": 0
           }
@@ -816,72 +461,6 @@
         ]
       ]
     },
-    "Chunk Creator": {
-      "main": [
-        [
-          {
-            "node": "Chunk Splitter",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mistral Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Chunk Creator",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Chunk Splitter": {
-      "main": [
-        [
-          {
-            "node": "Split Out1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Q&A Generator": {
-      "main": [
-        [
-          {
-            "node": "Q&A Splitter",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mistral Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Q&A Generator",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Q&A Splitter": {
-      "main": [
-        [
-          {
-            "node": "Persist In DB",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Edit Fields": {
       "main": [
         [
@@ -926,17 +505,6 @@
         ]
       ]
     },
-    "Persist In DB": {
-      "main": [
-        [
-          {
-            "node": "Update Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Merge Output": {
       "main": [
         [
@@ -960,11 +528,11 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "dedfb72b-0e53-4a22-90ed-26a10189d305",
+  "versionId": "6cfa02d6-0107-4bd0-a52e-98eeea8df881",
   "meta": {
     "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
   },
