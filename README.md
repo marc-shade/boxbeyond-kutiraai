@@ -97,6 +97,27 @@ KutiraAI was designed with a core philosophy: **your data should never leave you
 
 ---
 
+## 🎬 Demo Video
+
+Watch KutiraAI in action! This comprehensive demo showcases the complete AI platform workflow from dataset generation to fine-tuning to agentic workflows:
+
+[![KutiraAI Demo Video](https://img.youtube.com/vi/AuLTgnr0X3I/maxresdefault.jpg)](https://www.youtube.com/watch?v=AuLTgnr0X3I)
+
+**🔗 [Watch on YouTube](https://www.youtube.com/watch?v=AuLTgnr0X3I)**
+
+### What You'll See in the Demo
+
+- **🚀 Quick Setup**: Complete platform deployment with a single command
+- **📊 Dataset Generation**: Automatic Q&A pair generation from documents using n8n workflows
+- **🤖 Model Fine-tuning**: MLX-powered fine-tuning with real-time progress monitoring
+- **🔄 Agentic Workflows**: Multi-agent CrewAI workflows with parameter substitution
+- **🔗 Process Integration**: Seamless integration between all platform components
+- **📈 Real-time Dashboard**: Live monitoring of training progress and system health
+
+The demo provides a complete walkthrough of KutiraAI's capabilities, showing how enterprises can build, train, and deploy AI solutions entirely on their own infrastructure while maintaining complete data privacy.
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
