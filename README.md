@@ -101,9 +101,11 @@ KutiraAI was designed with a core philosophy: **your data should never leave you
 
 Watch KutiraAI in action! This comprehensive demo showcases the complete AI platform workflow from dataset generation to fine-tuning to agentic workflows:
 
-[![KutiraAI Demo Video](https://img.youtube.com/vi/AuLTgnr0X3I/maxresdefault.jpg)](https://www.youtube.com/watch?v=AuLTgnr0X3I)
+<a href="https://www.youtube.com/watch?v=AuLTgnr0X3I" target="_blank">
+  <img src="https://img.youtube.com/vi/AuLTgnr0X3I/maxresdefault.jpg" alt="KutiraAI Demo Video" style="max-width: 100%; height: auto;">
+</a>
 
-**🔗 [Watch on YouTube](https://www.youtube.com/watch?v=AuLTgnr0X3I)**
+**🔗 [Watch on YouTube](https://www.youtube.com/watch?v=AuLTgnr0X3I){:target="_blank"}**
 
 ### What You'll See in the Demo
 
