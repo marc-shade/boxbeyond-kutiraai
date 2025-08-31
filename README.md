@@ -532,7 +532,6 @@ KutiraAI is built on the shoulders of giants. Special thanks to the following pr
 ## 📞 Support & Community
 
 - **Documentation**: This README serves as the primary documentation
-- **Video Tutorials**: YouTube videos will be added shortly
 - **Issues**: [GitHub Issues](https://github.com/daniel-manickam/KutiraAI/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/daniel-manickam/KutiraAI/discussions)
 
