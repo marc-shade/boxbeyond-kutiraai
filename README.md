@@ -105,7 +105,7 @@ Watch KutiraAI in action! This comprehensive demo showcases the complete AI plat
   <img src="https://img.youtube.com/vi/AuLTgnr0X3I/maxresdefault.jpg" alt="KutiraAI Demo Video" style="max-width: 100%; height: auto;">
 </a>
 
-**🔗 [Watch on YouTube](https://www.youtube.com/watch?v=AuLTgnr0X3I){:target="_blank"}**
+**🔗 <a href="https://www.youtube.com/watch?v=AuLTgnr0X3I" target="_blank">Watch on YouTube</a>**
 
 ### What You'll See in the Demo
 
