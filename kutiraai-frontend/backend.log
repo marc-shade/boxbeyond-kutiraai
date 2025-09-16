@@ -1,0 +1,7 @@
+Mock backend server running on http://localhost:8000
+Available endpoints:
+  GET  /api/health
+  GET  /api/mcp/services
+  GET  /api/mcp/metrics
+  GET  /api/mcp/health
+  POST /api/mcp/execute
