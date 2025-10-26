@@ -12,6 +12,7 @@ const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
 const { getOrchestratorService } = require('./src/services/orchestrator-service');
 const notificationRoutes = require('./routes/notifications');
+const SystemEventNotifier = require('./services/system-event-notifier');
 
 const app = express();
 const execAsync = promisify(exec);
@@ -1656,4 +1657,16 @@ app.listen(PORT, () => {
   console.log(`🌙 Overnight automation endpoints available at /api/overnight/*`);
   console.log(`🔧 AutoKitteh endpoints available at /api/autokitteh/*`);
   console.log(`🔒 CSRF protection enabled for state-changing requests`);
+
+  // Start system event monitoring for real-time notifications
+  const eventNotifier = new SystemEventNotifier(notificationRoutes.broadcastSystemNotification);
+  eventNotifier.start(30000); // Check every 30 seconds
+  console.log(`📢 Real-time event notifications active`);
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    eventNotifier.stop();
+    process.exit(0);
+  });
 });
