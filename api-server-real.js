@@ -1004,8 +1004,115 @@ app.get('/api/mcp/configs/paths', async (req, res) => {
 });
 
 // ===== DASHBOARD STATS ENDPOINT =====
-app.get('/api/dashboard/stats', (req, res) => {
-  res.json({ stats: {} });
+app.get('/api/dashboard/stats', async (req, res) => {
+  try {
+    console.log('[Dashboard] Fetching dashboard stats');
+
+    // Get session checkpoints count
+    const sessionsDir = '/Volumes/FILES/code/kutiraai/data/overnight/sessions';
+    let sessionsCount = 0;
+    if (fsSync.existsSync(sessionsDir)) {
+      const files = await fs.readdir(sessionsDir);
+      sessionsCount = files.filter(f => f.endsWith('.json')).length;
+    }
+
+    // Get agent count from agents directory
+    const agentsDir = path.join(__dirname, '.claude/agents');
+    let agentsCount = 0;
+    if (fsSync.existsSync(agentsDir)) {
+      const files = await fs.readdir(agentsDir);
+      agentsCount = files.filter(f => f.endsWith('.md')).length;
+    }
+
+    // Get MCP server count
+    const mcpConfigPath = path.join(process.env.HOME || '/Users/marc', '.claude.json');
+    let mcpServersCount = 0;
+    if (fsSync.existsSync(mcpConfigPath)) {
+      const config = JSON.parse(fsSync.readFileSync(mcpConfigPath, 'utf8'));
+      mcpServersCount = Object.keys(config.mcpServers || {}).length;
+    }
+
+    // System metrics
+    const uptime = process.uptime();
+    const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+
+    res.json({
+      success: true,
+      stats: {
+        activeAgents: agentsCount,
+        recentSessions: sessionsCount,
+        mcpServers: mcpServersCount,
+        systemUptime: uptime,
+        memoryUsage: memUsage,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('[Dashboard] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stats: {}
+    });
+  }
+});
+
+// ===== DASHBOARD CHART DATA ENDPOINT =====
+app.get('/api/dashboard/chart-data', async (req, res) => {
+  try {
+    console.log('[Dashboard] Fetching chart data');
+
+    // Get recent sessions for time-series data
+    const sessionsDir = '/Volumes/FILES/code/kutiraai/data/overnight/sessions';
+    const chartData = {
+      sessions: [],
+      memory: [],
+      tasks: []
+    };
+
+    if (fsSync.existsSync(sessionsDir)) {
+      const files = await fs.readdir(sessionsDir);
+      const jsonFiles = files.filter(f => f.endsWith('.json')).slice(-7); // Last 7 sessions
+
+      for (const file of jsonFiles) {
+        try {
+          const filePath = path.join(sessionsDir, file);
+          const content = await fs.readFile(filePath, 'utf8');
+          const data = JSON.parse(content);
+
+          const timestamp = data.timestamp || data.startTime || new Date().toISOString();
+          chartData.sessions.push({
+            date: new Date(timestamp).toLocaleDateString(),
+            value: data.tasksCompleted || 0
+          });
+          chartData.memory.push({
+            date: new Date(timestamp).toLocaleDateString(),
+            value: data.memoryUsed || 0
+          });
+          chartData.tasks.push({
+            date: new Date(timestamp).toLocaleDateString(),
+            completed: data.tasksCompleted || 0,
+            failed: data.tasksFailed || 0
+          });
+        } catch (err) {
+          console.error(`[Dashboard] Error reading ${file}:`, err.message);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      chartData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Dashboard] Chart data error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      chartData: { sessions: [], memory: [], tasks: [] }
+    });
+  }
 });
 
 // ===== OVERNIGHT AUTOMATION ENDPOINTS =====
