@@ -5,7 +5,12 @@ import jsconfigPaths from 'vite-jsconfig-paths';
 import fs from 'fs/promises';
 
 export default defineConfig({
-  plugins: [react(), jsconfigPaths()],
+  plugins: [react({
+    // Disable full page reload on HMR updates
+    fastRefresh: true,
+    // Only update changed components, not the whole page
+    include: '**/*.{jsx,tsx}',
+  }), jsconfigPaths()],
   base: '/',
   build: {
     outDir: 'dist',
@@ -36,16 +41,30 @@ export default defineConfig({
     ]
   },
   server: {
-    open: true,
-    port: 3001,
+    open: false,
+    port: 3101,
     host: true,
     fs: {
       allow: ['/Users/marc/Projects/', '/Volumes/FILES/code/', '/Users/marc/Desktop/']
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    },
+    hmr: {
+      // Configure HMR to only update modules, not reload the page
+      overlay: true,
+      protocol: 'ws',
+      // Prevent full page reloads
+      timeout: 30000
     }
   },
   preview: {
-    open: true,
-    port: 3000,
+    open: false,
+    port: 3100,
     host: true
   }
 });
