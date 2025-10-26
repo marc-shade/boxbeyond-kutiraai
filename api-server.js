@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config();
+
 const express = require('express');
 const { exec } = require('child_process');
 const { promisify } = require('util');
@@ -5,7 +8,10 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
 const { getOrchestratorService } = require('./src/services/orchestrator-service');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const execAsync = promisify(exec);
@@ -28,6 +34,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(cookieParser());
+
+// CSRF protection middleware - double submit cookie pattern
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    secure: false, // set to true in production with HTTPS
+    sameSite: 'lax'
+  }
+});
 
 // MCP server configurations
 const servers = {
@@ -131,7 +147,7 @@ app.get('/api/mcp/servers', async (req, res) => {
 });
 
 // Start a server
-app.post('/api/mcp/servers/:name/start', async (req, res) => {
+app.post('/api/mcp/servers/:name/start', csrfProtection, async (req, res) => {
   const serverName = req.params.name;
   const server = servers[serverName];
   
@@ -178,7 +194,7 @@ app.get('/api/mcp/memory', async (req, res) => {
 });
 
 // Stop a server
-app.post('/api/mcp/servers/:name/stop', async (req, res) => {
+app.post('/api/mcp/servers/:name/stop', csrfProtection, async (req, res) => {
   const serverName = req.params.name;
   const server = servers[serverName];
   
@@ -264,7 +280,7 @@ app.get('/api/mcp/restart-info/:service', async (req, res) => {
 });
 
 // Launch Flow Nexus
-app.post('/api/flow-nexus/launch', async (req, res) => {
+app.post('/api/flow-nexus/launch', csrfProtection, async (req, res) => {
   const { mode = '' } = req.body;
   
   try {
@@ -278,7 +294,7 @@ app.post('/api/flow-nexus/launch', async (req, res) => {
 });
 
 // Create agent swarm
-app.post('/api/swarm/create', async (req, res) => {
+app.post('/api/swarm/create', csrfProtection, async (req, res) => {
   const { swarmType, task } = req.body;
   
   const swarmConfigs = {
@@ -359,7 +375,7 @@ app.get('/api/agents/:category', async (req, res) => {
 });
 
 // Spawn individual agent
-app.post('/api/agent/spawn', async (req, res) => {
+app.post('/api/agent/spawn', csrfProtection, async (req, res) => {
   const { agentName, task, category } = req.body;
   
   try {
@@ -454,7 +470,7 @@ app.get('/api/orchestrator/metrics', async (req, res) => {
 });
 
 // Force recovery for a service
-app.post('/api/orchestrator/force-recovery', async (req, res) => {
+app.post('/api/orchestrator/force-recovery', csrfProtection, async (req, res) => {
   try {
     const { serviceKey } = req.body;
     if (!serviceKey) {
@@ -601,27 +617,330 @@ app.get('/api/health', (req, res) => {
 });
 
 // ===== CSRF TOKEN ENDPOINT =====
-app.get('/api/csrf-token', (req, res) => {
-  res.json({ token: 'development-token-' + Date.now() });
+// This endpoint is publicly accessible (no CSRF protection needed for GET)
+// It returns a CSRF token that must be used for subsequent state-changing requests
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  try {
+    // The csrfProtection middleware automatically sets the cookie
+    // and makes the token available via req.csrfToken()
+    const token = req.csrfToken();
+
+    res.json({
+      success: true,
+      csrfToken: token
+    });
+  } catch (error) {
+    console.error('[CSRF] Token generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate CSRF token',
+      message: error.message
+    });
+  }
 });
 
-// ===== NOTIFICATIONS STREAM ENDPOINT =====
-app.get('/api/notifications/stream', (req, res) => {
-  res.json({ notifications: [] });
-});
+// ===== NOTIFICATIONS ROUTES =====
+// Mount notification routes (includes SSE stream endpoint)
+app.use('/api/notifications', notificationRoutes.router);
 
 // ===== PORT DISCOVERY ENDPOINTS =====
-app.get('/api/port-discovery/urls', (req, res) => {
-  res.json({ urls: {} });
+app.get('/api/port-discovery/urls', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    // Known service ports to scan
+    const knownPorts = {
+      3001: 'frontend',
+      3002: 'api-server',
+      3101: 'vite-dev',
+      4102: 'port-manager',
+      5173: 'vite-alt',
+      7880: 'livekit',
+      8000: 'backend-mock',
+      8880: 'kokoro-tts',
+      9980: 'autokitteh'
+    };
+
+    const urls = {};
+
+    // Scan each known port
+    for (const [port, service] of Object.entries(knownPorts)) {
+      try {
+        const { stdout } = await execAsync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P 2>/dev/null || true`);
+        if (stdout.trim()) {
+          urls[service] = {
+            port: parseInt(port),
+            url: `http://localhost:${port}`,
+            status: 'active'
+          };
+        }
+      } catch (error) {
+        // Port not in use, skip
+      }
+    }
+
+    res.json({
+      success: true,
+      urls: urls,
+      total: Object.keys(urls).length
+    });
+
+  } catch (error) {
+    console.error('Port discovery error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      urls: {}
+    });
+  }
 });
 
-app.get('/api/port-discovery/health', (req, res) => {
-  res.json({ health: 'ok', services: [] });
+app.get('/api/port-discovery/health', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    // Scan all listening TCP ports
+    const { stdout } = await execAsync('lsof -iTCP -sTCP:LISTEN -n -P 2>/dev/null || true');
+
+    const services = [];
+    const lines = stdout.trim().split('\n');
+
+    for (let i = 1; i < lines.length; i++) { // Skip header
+      const parts = lines[i].split(/\s+/);
+      if (parts.length >= 9) {
+        const command = parts[0];
+        const pid = parts[1];
+        const portInfo = parts[8]; // Format: *:PORT or localhost:PORT
+
+        const portMatch = portInfo.match(/:(\d+)/);
+        if (portMatch) {
+          const port = parseInt(portMatch[1]);
+          services.push({
+            port: port,
+            pid: parseInt(pid),
+            command: command,
+            status: 'listening'
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      health: 'ok',
+      services: services,
+      total: services.length
+    });
+
+  } catch (error) {
+    console.error('Port health check error:', error);
+    res.json({
+      success: false,
+      health: 'error',
+      error: error.message,
+      services: []
+    });
+  }
 });
 
 // ===== MCP SERVICES ENDPOINT =====
-app.get('/api/mcp/services', (req, res) => {
-  res.json({ services: [] });
+app.get('/api/mcp/services', async (req, res) => {
+  try {
+    const configPaths = {
+      user: path.join(require('os').homedir(), '.claude.json'),
+      project: path.join(require('os').homedir(), '.mcp.json')
+    };
+
+    const services = [];
+    const seenServices = new Set();
+
+    // Helper to add services from config
+    const addServicesFromConfig = (config, source) => {
+      if (config.mcpServers) {
+        Object.entries(config.mcpServers).forEach(([name, serverConfig]) => {
+          if (!seenServices.has(name)) {
+            seenServices.add(name);
+
+            // Determine status (active if has command or args)
+            const isActive = !!(serverConfig.command || serverConfig.args);
+
+            services.push({
+              name: name,
+              status: isActive ? 'active' : 'disabled',
+              source: source,
+              command: serverConfig.command || null,
+              args: serverConfig.args || [],
+              env: serverConfig.env ? Object.keys(serverConfig.env).length : 0,
+              configPath: source === 'user' ? configPaths.user : configPaths.project
+            });
+          }
+        });
+      }
+    };
+
+    // Read user config
+    try {
+      const userConfigRaw = await fs.readFile(configPaths.user, 'utf-8');
+      const userConfig = JSON.parse(userConfigRaw);
+      addServicesFromConfig(userConfig, 'user');
+    } catch (error) {
+      console.error('Error reading user MCP config:', error.message);
+    }
+
+    // Read project config
+    try {
+      const projectConfigRaw = await fs.readFile(configPaths.project, 'utf-8');
+      const projectConfig = JSON.parse(projectConfigRaw);
+      addServicesFromConfig(projectConfig, 'project');
+    } catch (error) {
+      console.error('Error reading project MCP config:', error.message);
+    }
+
+    res.json({
+      success: true,
+      services: services,
+      total: services.length,
+      active: services.filter(s => s.status === 'active').length
+    });
+
+  } catch (error) {
+    console.error('MCP services error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      services: []
+    });
+  }
+});
+
+// ===== MCP CONFIGURATION ENDPOINTS =====
+
+// Get all MCP server configurations from both user and project configs
+app.get('/api/mcp/configs', async (req, res) => {
+  try {
+    const configPaths = {
+      user: path.join(require('os').homedir(), '.claude.json'),
+      project: path.join(require('os').homedir(), '.mcp.json')
+    };
+
+    const configs = {
+      user: { mcpServers: {} },
+      project: { mcpServers: {} },
+      combined: {}
+    };
+
+    // Read user-level config
+    try {
+      const userConfigRaw = await fs.readFile(configPaths.user, 'utf-8');
+      const userConfig = JSON.parse(userConfigRaw);
+      if (userConfig.mcpServers) {
+        configs.user.mcpServers = userConfig.mcpServers;
+        // Add to combined with source tag
+        Object.keys(userConfig.mcpServers).forEach(name => {
+          configs.combined[name] = {
+            ...userConfig.mcpServers[name],
+            _source: 'user',
+            _configPath: configPaths.user
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error reading user config:', error.message);
+      configs.user.error = error.message;
+    }
+
+    // Read project-level config
+    try {
+      const projectConfigRaw = await fs.readFile(configPaths.project, 'utf-8');
+      const projectConfig = JSON.parse(projectConfigRaw);
+      if (projectConfig.mcpServers) {
+        configs.project.mcpServers = projectConfig.mcpServers;
+        // Add to combined with source tag
+        Object.keys(projectConfig.mcpServers).forEach(name => {
+          configs.combined[name] = {
+            ...projectConfig.mcpServers[name],
+            _source: 'project',
+            _configPath: configPaths.project
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error reading project config:', error.message);
+      configs.project.error = error.message;
+    }
+
+    res.json({
+      success: true,
+      configs: configs,
+      totalServers: Object.keys(configs.combined).length,
+      userServers: Object.keys(configs.user.mcpServers).length,
+      projectServers: Object.keys(configs.project.mcpServers).length
+    });
+
+  } catch (error) {
+    console.error('MCP configs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      configs: null
+    });
+  }
+});
+
+// Get MCP configuration file paths
+app.get('/api/mcp/configs/paths', async (req, res) => {
+  try {
+    const homeDir = require('os').homedir();
+    const paths = {
+      user: path.join(homeDir, '.claude.json'),
+      project: path.join(homeDir, '.mcp.json'),
+      settings: path.join(homeDir, '.claude', 'settings.json'),
+      settingsLocal: path.join(homeDir, '.claude', 'settings.local.json')
+    };
+
+    // Check which files exist
+    const pathsWithStatus = {};
+    for (const [key, filePath] of Object.entries(paths)) {
+      try {
+        const stats = await fs.stat(filePath);
+        pathsWithStatus[key] = {
+          path: filePath,
+          exists: true,
+          size: stats.size,
+          modified: stats.mtime
+        };
+      } catch (error) {
+        pathsWithStatus[key] = {
+          path: filePath,
+          exists: false,
+          error: error.code
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      paths: pathsWithStatus,
+      description: {
+        user: 'User-level MCP server configuration',
+        project: 'Project-level MCP server configuration',
+        settings: 'Claude Code settings',
+        settingsLocal: 'Local settings (enabled MCP servers)'
+      }
+    });
+
+  } catch (error) {
+    console.error('MCP config paths error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      paths: null
+    });
+  }
 });
 
 // ===== DASHBOARD STATS ENDPOINT =====
@@ -661,6 +980,36 @@ const readJsonlFile = (filename, limit = 10) => {
 };
 
 app.get('/api/overnight/latest-report', (req, res) => {
+  // First try to read the latest generated report
+  const reportPath = path.join(__dirname, 'data/overnight/latest-report.json');
+
+  if (fsSync.existsSync(reportPath)) {
+    try {
+      const reportData = fsSync.readFileSync(reportPath, 'utf8');
+      const report = JSON.parse(reportData);
+
+      // Transform to expected format
+      return res.json({
+        success: true,
+        report: {
+          id: report.id,
+          timestamp: report.generatedAt,
+          period: report.period,
+          summary: report.summary,
+          metrics: report.metrics || { error: 'Metrics not available' },
+          patterns: report.patterns || { error: 'Patterns not available' },
+          costs: report.costs || { error: 'Cost analysis not available' },
+          optimizations: report.optimizations || { details: [] },
+          alerts: report.alerts || { alerts: [] },
+          recent_learnings: report.learnings || []
+        }
+      });
+    } catch (error) {
+      console.error('Error reading latest report:', error);
+    }
+  }
+
+  // Fallback to /tmp/ files if report doesn't exist
   const metrics = readJsonFile('claude_performance_metrics.json');
   const patterns = readJsonFile('claude_pattern_analysis.json');
   const costs = readJsonFile('claude_cost_analysis.json');
@@ -870,7 +1219,7 @@ app.get('/api/overnight/research', async (req, res) => {
 });
 
 // POST endpoint for discovering research (ArXiv + GitHub)
-app.post('/api/overnight/discover-research', async (req, res) => {
+app.post('/api/overnight/discover-research', csrfProtection, async (req, res) => {
   try {
     const axios = require('axios');
     const xml2js = require('xml2js');
@@ -958,66 +1307,154 @@ app.post('/api/overnight/discover-research', async (req, res) => {
 });
 
 // ===== AUTOKITTEH ENDPOINTS =====
-app.get('/api/autokitteh/sessions', (req, res) => {
-  res.json({
-    success: true,
-    sessions: [
-      {
-        id: 'ses_01k8f2v896frxb59z84172zxfk',
-        deployment_id: 'dep_01k8f2v896frxb59z84172zxfk',
-        workflow: 'claude_performance_monitor',
-        status: 'active',
-        started_at: new Date(Date.now() - 3600000).toISOString(),
-        last_activity: new Date().toISOString()
+// Helper function to execute AutoKitteh CLI commands
+const execAutoKitteh = (command) => {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    exec(`ak ${command}`, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout);
       }
-    ]
+    });
   });
-});
+};
 
-app.get('/api/autokitteh/triggers', (req, res) => {
-  res.json({
-    success: true,
-    triggers: [
-      {
-        id: 'trg_performance_check',
-        name: 'Performance Check (Every 15min)',
-        type: 'schedule',
-        schedule: '*/15 * * * *',
-        enabled: true,
-        last_triggered: new Date().toISOString()
-      },
-      {
-        id: 'trg_pattern_analysis',
-        name: 'Pattern Analysis (Hourly)',
-        type: 'schedule',
-        schedule: '0 * * * *',
-        enabled: true,
-        last_triggered: new Date(Date.now() - 600000).toISOString()
-      },
-      {
-        id: 'trg_deep_learning',
-        name: 'Deep Learning (Every 6h)',
-        type: 'schedule',
-        schedule: '0 */6 * * *',
-        enabled: true,
-        last_triggered: new Date(Date.now() - 7200000).toISOString()
-      }
-    ]
-  });
-});
+// Parse AutoKitteh protobuf-like output to JSON
+const parseAutoKittehOutput = (output, type) => {
+  const lines = output.trim().split('\n');
+  const results = [];
 
-app.get('/api/autokitteh/deployment', (req, res) => {
-  res.json({
-    success: true,
-    deployment: {
-      id: 'dep_01k8f2v896frxb59z84172zxfk',
-      project: 'autonomous_system',
-      state: 'active',
-      workflows: ['claude_performance_monitor'],
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date().toISOString()
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    const obj = {};
+    // Parse protobuf format: field:"value" or field:{subfield:value}
+    const fieldRegex = /(\w+):"([^"]+)"/g;
+    const timestampRegex = /(\w+):\{seconds:(\d+)\s+nanos:(\d+)\}/g;
+
+    let match;
+    while ((match = fieldRegex.exec(line)) !== null) {
+      obj[match[1]] = match[2];
     }
-  });
+
+    while ((match = timestampRegex.exec(line)) !== null) {
+      const seconds = parseInt(match[2]);
+      const date = new Date(seconds * 1000);
+      obj[match[1]] = date.toISOString();
+    }
+
+    if (Object.keys(obj).length > 0) {
+      results.push(obj);
+    }
+  }
+
+  return results;
+};
+
+app.get('/api/autokitteh/sessions', async (req, res) => {
+  try {
+    const output = await execAutoKitteh('session list');
+    const sessions = parseAutoKittehOutput(output, 'session');
+
+    // Transform to expected format
+    const formattedSessions = sessions.map(s => ({
+      id: s.session_id || s.id || 'unknown',
+      deployment_id: s.deployment_id || 'unknown',
+      workflow: s.workflow || 'unknown',
+      status: s.state === 'SESSION_STATE_RUNNING' ? 'active' :
+              s.state === 'SESSION_STATE_COMPLETED' ? 'completed' :
+              s.state || 'unknown',
+      started_at: s.created_at || new Date().toISOString(),
+      last_activity: s.updated_at || new Date().toISOString()
+    }));
+
+    res.json({
+      success: true,
+      sessions: formattedSessions
+    });
+  } catch (error) {
+    console.error('AutoKitteh sessions error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      sessions: []
+    });
+  }
+});
+
+app.get('/api/autokitteh/triggers', async (req, res) => {
+  try {
+    const output = await execAutoKitteh('trigger list');
+    const triggers = parseAutoKittehOutput(output, 'trigger');
+
+    // Transform to expected format
+    const formattedTriggers = triggers.map(t => ({
+      id: t.trigger_id || t.id || 'unknown',
+      name: t.name || 'Unknown Trigger',
+      type: t.event_type || 'schedule',
+      schedule: t.schedule || '* * * * *',
+      enabled: t.state !== 'TRIGGER_STATE_INACTIVE',
+      last_triggered: t.updated_at || new Date().toISOString()
+    }));
+
+    res.json({
+      success: true,
+      triggers: formattedTriggers
+    });
+  } catch (error) {
+    console.error('AutoKitteh triggers error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      triggers: []
+    });
+  }
+});
+
+app.get('/api/autokitteh/deployment', async (req, res) => {
+  try {
+    const deploymentsOutput = await execAutoKitteh('deployment list');
+    const deployments = parseAutoKittehOutput(deploymentsOutput, 'deployment');
+
+    // Get active deployment (first one with ACTIVE state)
+    const activeDeployment = deployments.find(d =>
+      d.state === 'DEPLOYMENT_STATE_ACTIVE'
+    ) || deployments[0];
+
+    if (!activeDeployment) {
+      return res.json({
+        success: false,
+        error: 'No deployments found',
+        deployment: null
+      });
+    }
+
+    // Get project info
+    const projectsOutput = await execAutoKitteh('project list');
+    const projects = parseAutoKittehOutput(projectsOutput, 'project');
+    const project = projects.find(p => p.project_id === activeDeployment.project_id);
+
+    res.json({
+      success: true,
+      deployment: {
+        id: activeDeployment.deployment_id || activeDeployment.id,
+        project: project ? project.name : activeDeployment.project_id,
+        state: activeDeployment.state === 'DEPLOYMENT_STATE_ACTIVE' ? 'active' : 'inactive',
+        workflows: ['autonomous_system'], // TODO: Get actual workflows
+        created_at: activeDeployment.created_at || new Date().toISOString(),
+        updated_at: activeDeployment.updated_at || new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('AutoKitteh deployment error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      deployment: null
+    });
+  }
 });
 
 // ===== GITHUB SMART SEARCH ENDPOINT =====
@@ -1185,6 +1622,32 @@ app.get('/api/github/search', async (req, res) => {
   }
 });
 
+// CSRF error handler - must come after all routes
+app.use((err, req, res, next) => {
+  // Handle CSRF token errors
+  if (err.code === 'EBADCSRFTOKEN') {
+    console.error('[CSRF] Invalid token detected:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers
+    });
+
+    return res.status(403).json({
+      success: false,
+      error: 'Invalid CSRF token',
+      message: 'CSRF token validation failed. Please refresh and try again.'
+    });
+  }
+
+  // Handle other errors
+  console.error('[Server] Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    message: err.message
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 MCP Backend API Server running on http://localhost:${PORT}`);
   console.log(`📡 Serving MCP server management for frontend at http://localhost:3001`);
@@ -1192,4 +1655,5 @@ app.listen(PORT, () => {
   console.log(`✅ Temporal endpoints available at /api/temporal/*`);
   console.log(`🌙 Overnight automation endpoints available at /api/overnight/*`);
   console.log(`🔧 AutoKitteh endpoints available at /api/autokitteh/*`);
+  console.log(`🔒 CSRF protection enabled for state-changing requests`);
 });
