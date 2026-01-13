@@ -1,0 +1,131 @@
+# MODEL CARD: Agent Analyzer
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "agent-analyzer"
+model_name: "Agent Performance Analyzer"
+model_version: "1.0.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "Low"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Analyzes performance metrics across all active agents in the system.
+  Identifies top performers and underperforming agents.
+  Detects bottlenecks in agent processing pipelines.
+  Provides comparative analysis for capacity planning.
+  Broadcasts analytics via WebSocket for dashboard visualization.
+
+out_of_scope_uses: |
+  - Terminating or restarting agents
+  - Modifying agent configurations
+  - Making scaling decisions autonomously
+  - Accessing agent internal state or data
+
+design_methodology: |
+  Statistical analysis engine with comparative ranking algorithms.
+  Uses moving averages for trend detection.
+  Chosen for actionable insights without operational risk.
+
+## Technical Specifications
+underlying_model: "None (Rule-based)"
+model_type: "Deterministic Agent"
+input_requirements:
+  - type: "agent_metrics"
+    description: "CPU, memory, task counts from agent registry"
+    constraints: "Metrics must be < 60 seconds old"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "topPerformers": array[{agentId, score, metrics}],
+        "underperformers": array[{agentId, score, issues}],
+        "bottlenecks": array[{agentId, bottleneckType, severity}],
+        "recommendations": array[string],
+        "overallHealth": number (0-100)
+      }
+dependencies:
+  - "Agent Registry (agents.json)"
+  - "Agentic Framework API (port 4100)"
+  - "WebSocket server (port 3003)"
+
+## Resource Requirements
+cpu_allocation: 0.3
+memory_mb: 192
+analysis_interval_ms: 30000
+
+## Assumptions & Limitations
+assumptions:
+  - "Agent metrics are accurate and timely"
+  - "Performance scoring algorithm is appropriate for all agent types"
+  - "Bottleneck detection thresholds are calibrated correctly"
+
+known_limitations:
+  - "Cannot account for external factors affecting performance"
+  - "Scoring may not reflect true business value"
+  - "Limited to metrics exposed by agents"
+  - "Historical trend analysis limited to session duration"
+
+failure_modes:
+  - condition: "Agent registry unavailable"
+    behavior: "Return stale analysis with warning"
+    mitigation: "Cache last known agent list"
+  - condition: "Metrics missing for some agents"
+    behavior: "Exclude from analysis, flag as unknown"
+    mitigation: "Partial analysis with coverage percentage"
+  - condition: "All agents underperforming"
+    behavior: "May indicate systemic issue, not agent problem"
+    mitigation: "Cross-reference with system metrics"
+
+## Performance Metrics
+latency_p50_ms: 50
+latency_p99_ms: 200
+analysis_coverage_threshold: 0.95
+
+## Risk Assessment
+risk_category: "Low"
+risk_justification: |
+  - Read-only analysis with no operational capability
+  - Recommendations are advisory only
+  - Failure results in missing insights only
+  - No access to sensitive agent data
+
+potential_impacts:
+  - impact: "Missed performance degradation"
+    severity: "Medium"
+    likelihood: "Low"
+  - impact: "Incorrect bottleneck identification"
+    severity: "Low"
+    likelihood: "Medium"
+
+## Validation Schedule
+validation_frequency: "Annual"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Ranking Accuracy Test"
+    description: "Verify top/bottom performers match known performance"
+    acceptance_criteria: "Top 3 correctly identified in 95% of tests"
+  - name: "Bottleneck Detection Test"
+    description: "Inject known bottleneck and verify detection"
+    acceptance_criteria: "Detection within 2 analysis cycles"
+  - name: "Coverage Test"
+    description: "Verify all agents included in analysis"
+    acceptance_criteria: "> 95% agent coverage"
+
+## Change History
+changes:
+  - date: "2025-11-11"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.0.0"
+    description: "Model card created for OCC 2011-12 compliance"
+    approved_by: "Phoenix (AI Assistant)"

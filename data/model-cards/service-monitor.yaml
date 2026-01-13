@@ -1,0 +1,138 @@
+# MODEL CARD: Service Monitor Agent
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "service-monitor"
+model_name: "MCP Service Monitor"
+model_version: "1.0.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "Medium"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Monitors health status of MCP services and external integrations.
+  Performs HTTP health checks at configurable intervals (default 30s).
+  Broadcasts service status via WebSocket for real-time dashboard updates.
+  Triggers alerts when services become unhealthy.
+
+out_of_scope_uses: |
+  - Automatically restarting failed services (handled by self-healing monitor)
+  - Modifying service configurations
+  - Making deployment decisions
+  - Accessing service internals beyond health endpoints
+
+design_methodology: |
+  Polling-based health check architecture with parallel execution.
+  Uses axios for HTTP health probes with configurable timeouts.
+  Chosen for simplicity and compatibility with standard health endpoints.
+
+## Technical Specifications
+underlying_model: "None (Rule-based)"
+model_type: "Deterministic Agent"
+input_requirements:
+  - type: "http_endpoints"
+    description: "Service health check URLs"
+    constraints: "Must respond within 5 second timeout"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "serviceName": string,
+        "status": "healthy" | "unhealthy" | "unknown",
+        "responseTime": number (ms),
+        "lastChecked": ISO8601 timestamp,
+        "consecutiveFailures": integer
+      }
+dependencies:
+  - "WebSocket server (port 3003)"
+  - "Port Manager API (port 4102)"
+  - "Target services with /health endpoints"
+
+## Resource Requirements
+cpu_allocation: 0.4
+memory_mb: 256
+check_interval_ms: 30000
+
+## Assumptions & Limitations
+assumptions:
+  - "Services expose standard health endpoints"
+  - "HTTP 2xx/3xx responses indicate healthy status"
+  - "Network connectivity is reliable"
+  - "Port Manager provides accurate service registry"
+
+known_limitations:
+  - "Cannot detect partial service degradation"
+  - "Health endpoint may not reflect true service health"
+  - "Parallel checks may overwhelm network during startup"
+  - "No support for non-HTTP health protocols"
+
+failure_modes:
+  - condition: "Target service timeout"
+    behavior: "Mark service as unhealthy after 5 seconds"
+    mitigation: "Configurable timeout, retry logic"
+  - condition: "Port Manager unavailable"
+    behavior: "Use cached service list"
+    mitigation: "Fallback to static configuration"
+  - condition: "Network partition"
+    behavior: "All services marked unhealthy"
+    mitigation: "Self-health check, alert suppression during network issues"
+
+## Performance Metrics
+latency_p50_ms: 50
+latency_p99_ms: 200
+error_rate_threshold: 0.05
+check_success_rate_threshold: 0.95
+
+## Risk Assessment
+risk_category: "Medium"
+risk_justification: |
+  - Read-only monitoring with no modification capability
+  - Provides critical visibility into system health
+  - False positives could trigger unnecessary alerts
+  - False negatives could delay incident response
+
+potential_impacts:
+  - impact: "Missed service outage detection"
+    severity: "High"
+    likelihood: "Low"
+  - impact: "False positive alerts causing alert fatigue"
+    severity: "Medium"
+    likelihood: "Medium"
+  - impact: "Delayed incident response"
+    severity: "High"
+    likelihood: "Low"
+
+## Validation Schedule
+validation_frequency: "Semi-Annual"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Detection Accuracy Test"
+    description: "Intentionally fail services and verify detection"
+    acceptance_criteria: "100% detection within 2 check intervals"
+  - name: "False Positive Rate"
+    description: "Monitor healthy services for 24 hours"
+    acceptance_criteria: "< 1% false positive rate"
+  - name: "Recovery Detection"
+    description: "Restore failed service and verify status update"
+    acceptance_criteria: "Status updated within 1 check interval"
+  - name: "Concurrent Load Test"
+    description: "Monitor 100+ services simultaneously"
+    acceptance_criteria: "All checks complete within interval"
+
+## Change History
+changes:
+  - date: "2025-11-11"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.0.0"
+    description: "Model card created for OCC 2011-12 compliance"
+    approved_by: "Phoenix (AI Assistant)"

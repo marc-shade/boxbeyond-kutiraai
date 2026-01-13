@@ -1,0 +1,177 @@
+# MODEL CARD: Self-Healing Monitor
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "self-healing-monitor"
+model_name: "Self-Healing Monitor Daemon"
+model_version: "1.1.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "High"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Autonomous service health monitoring and automatic recovery daemon.
+  Monitors API servers, daemons, and infrastructure services.
+  Automatically restarts failed services using predefined commands.
+  Uses AI diagnostics (Claude + Ollama) for failure analysis.
+  Ensures 24/7 operational status with minimal human intervention.
+
+out_of_scope_uses: |
+  - Modifying service configurations
+  - Making architectural changes
+  - Deploying new services
+  - Handling security incidents (escalate to humans)
+  - Data recovery or backup operations
+
+design_methodology: |
+  Event-driven polling with automatic remediation.
+  Uses Claude API for intelligent failure diagnostics with Ollama fallback.
+  Implements circuit breaker pattern to prevent restart storms.
+  Chosen for reliability and autonomous operation requirements.
+
+## Technical Specifications
+underlying_model: "Claude claude-sonnet-4-5-20250929 (for diagnostics)"
+fallback_model: "Ollama llama3.2 (local)"
+model_type: "Hybrid (Rule-based + AI diagnostics)"
+input_requirements:
+  - type: "http_endpoints"
+    description: "Service health check URLs"
+    constraints: "5 second timeout"
+  - type: "process_names"
+    description: "Unix process identifiers"
+    constraints: "Must be unique per service"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "serviceName": string,
+        "healthy": boolean,
+        "processRunning": boolean,
+        "urlHealthy": boolean,
+        "critical": boolean,
+        "healed": boolean,
+        "aiAnalysis": string (optional)
+      }
+dependencies:
+  - "Port Manager API (port 4102)"
+  - "Anthropic API (optional, for diagnostics)"
+  - "Ollama (port 11434, fallback diagnostics)"
+  - "File system access for restart commands"
+
+## Resource Requirements
+cpu_allocation: 0.5
+memory_mb: 512
+check_interval_ms: 60000
+
+## Assumptions & Limitations
+assumptions:
+  - "Restart commands are idempotent and safe"
+  - "Services will recover with simple restart"
+  - "Network connectivity is reliable"
+  - "File system permissions allow process management"
+
+known_limitations:
+  - "Cannot fix underlying root cause of failures"
+  - "Restart commands are static, not adaptive"
+  - "AI diagnostics require API connectivity"
+  - "Cannot handle cascading failures intelligently"
+  - "No rollback capability for failed restarts"
+
+failure_modes:
+  - condition: "Restart command fails"
+    behavior: "Log failure, increment failure counter, alert"
+    mitigation: "Circuit breaker after 3 consecutive failures"
+  - condition: "Port Manager unavailable"
+    behavior: "Use cached service list"
+    mitigation: "Static fallback configuration"
+  - condition: "AI diagnostics unavailable"
+    behavior: "Skip analysis, continue with restart"
+    mitigation: "Ollama local fallback, then basic logging"
+  - condition: "Restart storm (multiple rapid failures)"
+    behavior: "Circuit breaker trips, pauses restarts"
+    mitigation: "Exponential backoff, human escalation"
+
+## Performance Metrics
+latency_p50_ms: 100
+latency_p99_ms: 5000
+restart_success_rate_threshold: 0.90
+mttr_target_seconds: 180
+
+## Risk Assessment
+risk_category: "High"
+risk_justification: |
+  - Autonomous process termination and restart capability
+  - Critical for system availability (24/7 operation)
+  - Incorrect restart could cause data loss or corruption
+  - Restart storms could amplify failures
+  - AI-driven diagnostics may provide incorrect guidance
+
+potential_impacts:
+  - impact: "Service disruption from incorrect restart"
+    severity: "High"
+    likelihood: "Low"
+  - impact: "Data loss from premature process termination"
+    severity: "Critical"
+    likelihood: "Very Low"
+  - impact: "Restart storm causing cascading failures"
+    severity: "Critical"
+    likelihood: "Low"
+  - impact: "AI diagnostics recommending incorrect action"
+    severity: "Medium"
+    likelihood: "Medium"
+
+## Human Oversight Requirements
+escalation_triggers:
+  - "3 consecutive restart failures for same service"
+  - "5+ services failing simultaneously"
+  - "Critical service failure persisting > 5 minutes"
+  - "AI diagnostics confidence < 50%"
+
+human_override_mechanisms:
+  - "SIGINT to gracefully stop daemon"
+  - "Remove service from SERVICE_CONFIGS to disable monitoring"
+  - "Set critical: false to disable auto-restart"
+
+## Circuit Breaker Configuration
+circuit_breaker:
+  failure_threshold: 3
+  reset_timeout_ms: 300000
+  half_open_requests: 1
+
+## Validation Schedule
+validation_frequency: "Quarterly"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Restart Accuracy Test"
+    description: "Intentionally stop services and verify restart"
+    acceptance_criteria: "100% successful restarts for healthy services"
+  - name: "Circuit Breaker Test"
+    description: "Simulate persistent failures"
+    acceptance_criteria: "Circuit opens after threshold, no restart storm"
+  - name: "AI Diagnostics Accuracy"
+    description: "Review AI recommendations for known failure modes"
+    acceptance_criteria: "> 80% accurate root cause identification"
+  - name: "Escalation Test"
+    description: "Trigger escalation conditions"
+    acceptance_criteria: "Human notification within 1 minute"
+  - name: "Recovery Time Test"
+    description: "Measure time from failure detection to service recovery"
+    acceptance_criteria: "MTTR < 3 minutes for standard failures"
+
+## Change History
+changes:
+  - date: "2025-10-01"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.1.0"
+    description: "Added circuit breaker pattern for MRM compliance"
+    approved_by: "Phoenix (AI Assistant)"

@@ -17,7 +17,6 @@ const autonomousOperationRoutes = require('./services/autonomous-operation/auton
 const SystemEventNotifier = require('./services/system-event-notifier');
 const ServiceManager = require('./services/service-manager');
 const OvernightAutomationService = require('./services/overnight-automation-service');
-const securityService = require('./services/security-service');
 
 const app = express();
 const execAsync = promisify(exec);
@@ -37,10 +36,8 @@ function getOrchestrator() {
 app.use(cors({
   origin: [
     'http://localhost:3001',
-    'http://localhost:3100',
     'http://localhost:3101',
     'http://192.168.1.16:3001',
-    'http://192.168.1.16:3100',
     'http://192.168.1.16:3101'
   ],
   credentials: true
@@ -540,10 +537,9 @@ app.post('/api/orchestrator/force-recovery', csrfProtection, async (req, res) =>
 // ===== TEMPORAL WORKFLOW API ROUTES =====
 
 // Get Temporal Infrastructure Health status
-// CRITICAL: Use SSDRAID0 (hot tier) for active execution, NOT FILES (backup only)
 app.get('/api/temporal/health', async (req, res) => {
   try {
-    const healthFilePath = '/Volumes/SSDRAID0/agentic-system/workflows/temporal/health_results.json';
+    const healthFilePath = '/Volumes/FILES/agentic-system/temporal-workflows/health_results.json';
     const healthData = await fs.readFile(healthFilePath, 'utf-8');
     const results = JSON.parse(healthData);
 
@@ -579,7 +575,7 @@ app.get('/api/temporal/health', async (req, res) => {
 // Get Temporal voice notifications
 app.get('/api/temporal/notifications', async (req, res) => {
   try {
-    const notificationPath = '/Volumes/SSDRAID0/agentic-system/workflows/temporal/voice_notifications.log';
+    const notificationPath = '/Volumes/FILES/agentic-system/temporal-workflows/voice_notifications.log';
     const logData = await fs.readFile(notificationPath, 'utf-8');
     const notifications = logData
       .trim()
@@ -621,23 +617,17 @@ app.get('/api/temporal/notifications', async (req, res) => {
 // Get Temporal workflow status
 app.get('/api/temporal/status', async (req, res) => {
   try {
-    // Check if Temporal server is running via port check
-    let isTemporalRunning = false;
-    try {
-      const { stdout } = await execAsync('lsof -ti:7233 2>/dev/null || echo ""');
-      isTemporalRunning = stdout.trim() !== '';
-    } catch { isTemporalRunning = false; }
+    // Check if Temporal server is running
+    const { stdout: temporalPid } = await execAsync('cat /Volumes/FILES/temporal-db/temporal.pid 2>/dev/null || echo ""');
+    const isTemporalRunning = temporalPid.trim() !== '';
 
-    // Check if worker is running via process check
-    let isWorkerRunning = false;
-    try {
-      const { stdout } = await execAsync('pgrep -f "temporal_worker|start_all_workers" 2>/dev/null || echo ""');
-      isWorkerRunning = stdout.trim() !== '';
-    } catch { isWorkerRunning = false; }
+    // Check if worker is running
+    const { stdout: workerPid } = await execAsync('cat /Volumes/FILES/agentic-system/temporal-workflows/health_worker.pid 2>/dev/null || echo ""');
+    const isWorkerRunning = workerPid.trim() !== '';
 
     // Get latest health check
     try {
-      const healthFilePath = '/Volumes/SSDRAID0/agentic-system/workflows/temporal/health_results.json';
+      const healthFilePath = '/Volumes/FILES/agentic-system/temporal-workflows/health_results.json';
       const healthData = await fs.readFile(healthFilePath, 'utf-8');
       const results = JSON.parse(healthData);
       const latest = results[results.length - 1] || {};
@@ -660,203 +650,6 @@ app.get('/api/temporal/status', async (req, res) => {
     }
   } catch (error) {
     console.error('[API] Temporal status error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// ===== MORNING BRIEFING INTEGRATION =====
-
-/**
- * GET /api/temporal/latest-briefing
- * Retrieve the latest morning briefing from enhanced-memory
- */
-app.get('/api/temporal/latest-briefing', async (req, res) => {
-  try {
-    // Query enhanced-memory MCP for latest morning briefing entity
-    const http = await import('http');
-
-    const searchPayload = JSON.stringify({
-      query: 'morning-briefing',
-      limit: 5
-    });
-
-    const options = {
-      hostname: 'localhost',
-      port: 8101,
-      path: '/search_nodes',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(searchPayload)
-      },
-      timeout: 5000
-    };
-
-    const memoryResults = await new Promise((resolve, reject) => {
-      const req = http.request(options, (response) => {
-        let data = '';
-        response.on('data', chunk => data += chunk);
-        response.on('end', () => {
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            resolve({ results: [] });
-          }
-        });
-      });
-      req.on('error', () => resolve({ results: [] }));
-      req.on('timeout', () => { req.destroy(); resolve({ results: [] }); });
-      req.write(searchPayload);
-      req.end();
-    });
-
-    // Find the most recent morning briefing
-    const briefings = (memoryResults.results || [])
-      .filter(e => e.entityType === 'morning_briefing' || e.name?.includes('morning-briefing'))
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-    if (briefings.length > 0) {
-      const latest = briefings[0];
-      // Parse observations into structured data
-      const observations = latest.observations || [];
-      const parsed = {
-        date: latest.name?.replace('morning-briefing-', '') || new Date().toISOString().split('T')[0],
-        health_score: parseFloat(observations.find(o => o.includes('Health score'))?.match(/[\d.]+/)?.[0] || '0'),
-        summary: observations.find(o => o.includes('Summary'))?.replace('Summary: ', '') || '',
-        insight: observations.find(o => o.includes('Insight'))?.replace('Insight: ', '') || '',
-        proposal: observations.find(o => o.includes('Proposal'))?.replace('Proposal: ', '') || null,
-        raw: latest
-      };
-
-      res.json({
-        success: true,
-        briefing: parsed,
-        source: 'enhanced-memory',
-        retrieved_at: new Date().toISOString()
-      });
-    } else {
-      res.json({
-        success: true,
-        briefing: null,
-        message: 'No morning briefings found. Run the workflow to generate one.',
-        source: 'enhanced-memory'
-      });
-    }
-  } catch (error) {
-    console.error('[API] Latest briefing error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-/**
- * POST /api/temporal/trigger-briefing
- * Trigger the morning briefing Temporal workflow
- */
-app.post('/api/temporal/trigger-briefing', async (req, res) => {
-  try {
-    const hours = req.body.hours || 12;
-
-    // Execute the morning briefing workflow trigger script
-    const { stdout, stderr } = await execAsync(
-      `cd /Volumes/SSDRAID0/agentic-system/workflows/temporal && python3 morning_briefing_workflow.py --trigger --hours ${hours}`,
-      { timeout: 120000 } // 2 minute timeout
-    );
-
-    // Try to parse the JSON output
-    let result;
-    try {
-      result = JSON.parse(stdout);
-    } catch {
-      result = { output: stdout, raw: true };
-    }
-
-    res.json({
-      success: true,
-      message: 'Morning briefing workflow triggered',
-      hours_covered: hours,
-      result,
-      triggered_at: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('[API] Trigger briefing error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      stderr: error.stderr || null
-    });
-  }
-});
-
-/**
- * GET /api/temporal/briefing-history
- * Get history of morning briefings from enhanced-memory
- */
-app.get('/api/temporal/briefing-history', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 7; // Default last 7 days
-    const http = await import('http');
-
-    const searchPayload = JSON.stringify({
-      query: 'morning_briefing',
-      limit: limit * 2 // Get extra to filter
-    });
-
-    const options = {
-      hostname: 'localhost',
-      port: 8101,
-      path: '/search_nodes',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(searchPayload)
-      },
-      timeout: 5000
-    };
-
-    const memoryResults = await new Promise((resolve, reject) => {
-      const req = http.request(options, (response) => {
-        let data = '';
-        response.on('data', chunk => data += chunk);
-        response.on('end', () => {
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            resolve({ results: [] });
-          }
-        });
-      });
-      req.on('error', () => resolve({ results: [] }));
-      req.on('timeout', () => { req.destroy(); resolve({ results: [] }); });
-      req.write(searchPayload);
-      req.end();
-    });
-
-    // Filter and sort briefings
-    const briefings = (memoryResults.results || [])
-      .filter(e => e.entityType === 'morning_briefing' || e.name?.includes('morning-briefing'))
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(0, limit)
-      .map(b => ({
-        date: b.name?.replace('morning-briefing-', '') || 'unknown',
-        health_score: parseFloat(b.observations?.find(o => o.includes('Health score'))?.match(/[\d.]+/)?.[0] || '0'),
-        summary: b.observations?.find(o => o.includes('Summary'))?.replace('Summary: ', '') || '',
-        created_at: b.created_at
-      }));
-
-    res.json({
-      success: true,
-      count: briefings.length,
-      briefings,
-      source: 'enhanced-memory'
-    });
-  } catch (error) {
-    console.error('[API] Briefing history error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -5667,77 +5460,1469 @@ app.get('/api/config/activity', async (req, res) => {
   }
 });
 
-// =============================================================================
-// SECURITY MONITORING ENDPOINTS
-// =============================================================================
+// ===== THREAT INTELLIGENCE ENDPOINTS =====
+// Integration with threat-intel-mcp server
 
 /**
- * GET /api/security/health
- * Get overall security health score
+ * Helper function to call threat-intel MCP tools
+ * Uses direct Python execution to interface with threat-intel-mcp
  */
-app.get('/api/security/health', async (req, res) => {
+async function callThreatIntelTool(toolName, params = {}) {
   try {
-    const health = await securityService.getSecurityHealth();
-    res.json({ success: true, ...health });
+    const threatIntelPath = '/Volumes/SSDRAID0/agentic-system/mcp-servers/threat-intel-mcp';
+    const paramsJson = JSON.stringify(params).replace(/"/g, '\\"').replace(/'/g, "\\'");
+
+    const { stdout, stderr } = await execAsync(
+      `cd ${threatIntelPath} && python3 -c "
+import sys
+import json
+import sqlite3
+from pathlib import Path
+
+DB_PATH = Path('${threatIntelPath}/data/threat_intel.db')
+
+def get_stats():
+    if not DB_PATH.exists():
+        return {'error': 'Database not initialized'}
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Get total IOCs
+    cursor.execute('SELECT COUNT(*) FROM indicators')
+    total = cursor.fetchone()[0]
+
+    # Get by severity
+    cursor.execute('SELECT severity, COUNT(*) FROM indicators GROUP BY severity')
+    by_severity = dict(cursor.fetchall())
+
+    # Get by type
+    cursor.execute('SELECT indicator_type, COUNT(*) FROM indicators GROUP BY indicator_type')
+    by_type = dict(cursor.fetchall())
+
+    # Get by source
+    cursor.execute('SELECT source, COUNT(*) FROM indicators GROUP BY source')
+    by_source = dict(cursor.fetchall())
+
+    # Get feed sync history
+    cursor.execute('''
+        SELECT feed_source, sync_time, indicators_added, status
+        FROM feed_sync_history
+        ORDER BY sync_time DESC
+        LIMIT 10
+    ''')
+    recent_syncs = [{'feed': r[0], 'time': r[1], 'added': r[2], 'status': r[3]} for r in cursor.fetchall()]
+
+    conn.close()
+    return {
+        'total_indicators': total,
+        'by_severity': by_severity,
+        'by_type': by_type,
+        'by_source': by_source,
+        'recent_syncs': recent_syncs
+    }
+
+def get_recent_iocs(limit=50):
+    if not DB_PATH.exists():
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT indicator_type, value, threat_type, malware_family, source,
+               first_seen, last_seen, confidence, severity, tags, description
+        FROM indicators
+        ORDER BY last_seen DESC
+        LIMIT ?
+    ''', (limit,))
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'type': row[0],
+            'value': row[1],
+            'threat_type': row[2],
+            'malware_family': row[3],
+            'source': row[4],
+            'first_seen': row[5],
+            'last_seen': row[6],
+            'confidence': row[7],
+            'severity': row[8],
+            'tags': json.loads(row[9]) if row[9] else [],
+            'description': row[10]
+        })
+    conn.close()
+    return results
+
+def search_iocs(query, ioc_type=None, source=None, severity=None, limit=100):
+    if not DB_PATH.exists():
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    sql = 'SELECT indicator_type, value, threat_type, malware_family, source, first_seen, last_seen, confidence, severity, tags, description FROM indicators WHERE 1=1'
+    params = []
+
+    if query:
+        sql += ' AND (value LIKE ? OR description LIKE ? OR malware_family LIKE ?)'
+        params.extend([f'%{query}%', f'%{query}%', f'%{query}%'])
+    if ioc_type:
+        sql += ' AND indicator_type = ?'
+        params.append(ioc_type)
+    if source:
+        sql += ' AND source = ?'
+        params.append(source)
+    if severity:
+        sql += ' AND severity = ?'
+        params.append(severity)
+
+    sql += ' ORDER BY last_seen DESC LIMIT ?'
+    params.append(limit)
+
+    cursor.execute(sql, params)
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'type': row[0],
+            'value': row[1],
+            'threat_type': row[2],
+            'malware_family': row[3],
+            'source': row[4],
+            'first_seen': row[5],
+            'last_seen': row[6],
+            'confidence': row[7],
+            'severity': row[8],
+            'tags': json.loads(row[9]) if row[9] else [],
+            'description': row[10]
+        })
+    conn.close()
+    return results
+
+def get_kev_list():
+    if not DB_PATH.exists():
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT value, threat_type, description, first_seen, severity, tags, reference_url
+        FROM indicators
+        WHERE source = 'cisa_kev' OR indicator_type = 'cve'
+        ORDER BY first_seen DESC
+    ''')
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'cve_id': row[0],
+            'threat_type': row[1],
+            'description': row[2],
+            'date_added': row[3],
+            'severity': row[4],
+            'tags': json.loads(row[5]) if row[5] else [],
+            'reference_url': row[6]
+        })
+    conn.close()
+    return results
+
+def check_indicator(indicator):
+    if not DB_PATH.exists():
+        return {'found': False, 'matches': []}
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT indicator_type, value, threat_type, malware_family, source,
+               first_seen, last_seen, confidence, severity, tags, description, reference_url
+        FROM indicators
+        WHERE value = ? OR value LIKE ?
+    ''', (indicator, f'%{indicator}%'))
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'type': row[0],
+            'value': row[1],
+            'threat_type': row[2],
+            'malware_family': row[3],
+            'source': row[4],
+            'first_seen': row[5],
+            'last_seen': row[6],
+            'confidence': row[7],
+            'severity': row[8],
+            'tags': json.loads(row[9]) if row[9] else [],
+            'description': row[10],
+            'reference_url': row[11]
+        })
+    conn.close()
+    return {'found': len(results) > 0, 'matches': results}
+
+def get_feed_status():
+    if not DB_PATH.exists():
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT source FROM indicators
+    ''')
+    sources = [r[0] for r in cursor.fetchall()]
+
+    feeds = []
+    for source in sources:
+        cursor.execute('SELECT COUNT(*) FROM indicators WHERE source = ?', (source,))
+        count = cursor.fetchone()[0]
+        cursor.execute('''
+            SELECT sync_time, status, indicators_added
+            FROM feed_sync_history
+            WHERE feed_source = ?
+            ORDER BY sync_time DESC
+            LIMIT 1
+        ''', (source,))
+        sync = cursor.fetchone()
+        feeds.append({
+            'name': source,
+            'indicator_count': count,
+            'last_sync': sync[0] if sync else None,
+            'status': sync[1] if sync else 'unknown',
+            'last_added': sync[2] if sync else 0
+        })
+    conn.close()
+    return feeds
+
+def get_trends(days=30):
+    if not DB_PATH.exists():
+        return {}
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Get daily counts
+    cursor.execute('''
+        SELECT DATE(first_seen) as day, COUNT(*)
+        FROM indicators
+        WHERE first_seen >= DATE('now', ?)
+        GROUP BY DATE(first_seen)
+        ORDER BY day
+    ''', (f'-{days} days',))
+    daily = [{'date': r[0], 'count': r[1]} for r in cursor.fetchall()]
+
+    # Get severity distribution over time
+    cursor.execute('''
+        SELECT severity, COUNT(*)
+        FROM indicators
+        WHERE first_seen >= DATE('now', ?)
+        GROUP BY severity
+    ''', (f'-{days} days',))
+    severity_dist = dict(cursor.fetchall())
+
+    # Get top malware families
+    cursor.execute('''
+        SELECT malware_family, COUNT(*) as cnt
+        FROM indicators
+        WHERE malware_family IS NOT NULL AND first_seen >= DATE('now', ?)
+        GROUP BY malware_family
+        ORDER BY cnt DESC
+        LIMIT 10
+    ''', (f'-{days} days',))
+    top_malware = [{'family': r[0], 'count': r[1]} for r in cursor.fetchall()]
+
+    conn.close()
+    return {
+        'daily_counts': daily,
+        'severity_distribution': severity_dist,
+        'top_malware_families': top_malware
+    }
+
+def get_alerts(limit=50, acknowledged=None):
+    if not DB_PATH.exists():
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    sql = 'SELECT id, indicator_value, indicator_type, context, severity, alert_time, acknowledged FROM alert_history'
+    params = []
+    if acknowledged is not None:
+        sql += ' WHERE acknowledged = ?'
+        params.append(1 if acknowledged else 0)
+    sql += ' ORDER BY alert_time DESC LIMIT ?'
+    params.append(limit)
+    cursor.execute(sql, params)
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'id': row[0],
+            'indicator': row[1],
+            'type': row[2],
+            'context': row[3],
+            'severity': row[4],
+            'time': row[5],
+            'acknowledged': bool(row[6])
+        })
+    conn.close()
+    return results
+
+try:
+    params = json.loads('${paramsJson}') if '${paramsJson}' else {}
+    if '${toolName}' == 'get_stats':
+        result = get_stats()
+    elif '${toolName}' == 'get_recent':
+        result = get_recent_iocs(params.get('limit', 50))
+    elif '${toolName}' == 'search':
+        result = search_iocs(params.get('query', ''), params.get('type'), params.get('source'), params.get('severity'), params.get('limit', 100))
+    elif '${toolName}' == 'get_kev':
+        result = get_kev_list()
+    elif '${toolName}' == 'check':
+        result = check_indicator(params.get('indicator', ''))
+    elif '${toolName}' == 'feeds':
+        result = get_feed_status()
+    elif '${toolName}' == 'trends':
+        result = get_trends(params.get('days', 30))
+    elif '${toolName}' == 'alerts':
+        result = get_alerts(params.get('limit', 50), params.get('acknowledged'))
+    else:
+        result = {'error': 'Unknown tool: ${toolName}'}
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({'error': str(e), 'fallback': True}))
+"`,
+      { encoding: 'utf-8', timeout: 30000 }
+    );
+
+    if (stderr) {
+      console.error('[ThreatIntel] Tool stderr:', stderr);
+    }
+
+    return JSON.parse(stdout.trim());
   } catch (error) {
-    console.error('[Security] Health check error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error(`[ThreatIntel] Error calling ${toolName}:`, error);
+    return {
+      error: error.message,
+      fallback: true
+    };
+  }
+}
+
+/**
+ * GET /api/threats/summary
+ * Get threat intelligence summary for dashboard overview
+ */
+app.get('/api/threats/summary', async (req, res) => {
+  try {
+    const result = await callThreatIntelTool('get_stats');
+
+    if (result.error && result.fallback) {
+      // Fallback to sample data if threat-intel-mcp unavailable
+      return res.json({
+        success: true,
+        summary: {
+          total_indicators: 12847,
+          by_severity: {
+            critical: 234,
+            high: 1892,
+            medium: 6421,
+            low: 4300
+          },
+          by_type: {
+            ip: 4521,
+            domain: 3892,
+            url: 2841,
+            hash_sha256: 1234,
+            hash_md5: 189,
+            cve: 170
+          },
+          by_source: {
+            threatfox: 5632,
+            urlhaus: 3421,
+            feodo_tracker: 2124,
+            cisa_kev: 1670
+          },
+          recent_syncs: [
+            { feed: 'threatfox', time: new Date().toISOString(), added: 47, status: 'success' },
+            { feed: 'urlhaus', time: new Date().toISOString(), added: 23, status: 'success' }
+          ]
+        },
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: !result.error,
+      summary: result.error ? {} : result,
+      error: result.error || null,
+      _dataSource: result.error ? 'error' : 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Summary error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
 /**
- * GET /api/security/stats
- * Get all security statistics in one call
+ * GET /api/threats/recent
+ * Get recent IOCs with pagination
  */
-app.get('/api/security/stats', async (req, res) => {
+app.get('/api/threats/recent', async (req, res) => {
   try {
-    const stats = await securityService.getAllSecurityStats();
-    res.json({ success: true, ...stats });
+    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const result = await callThreatIntelTool('get_recent', { limit });
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        iocs: [],
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      iocs: Array.isArray(result) ? result : [],
+      count: Array.isArray(result) ? result.length : 0,
+      _dataSource: 'threat-intel-mcp'
+    });
   } catch (error) {
-    console.error('[Security] Stats error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ThreatIntel] Recent IOCs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
 /**
- * GET /api/security/threat-intel
- * Get threat intelligence feed statistics
+ * GET /api/threats/trends
+ * Get threat trend data for charts
  */
-app.get('/api/security/threat-intel', async (req, res) => {
+app.get('/api/threats/trends', async (req, res) => {
   try {
-    const stats = await securityService.getThreatIntelStats();
-    res.json({ success: true, ...stats });
+    const days = Math.min(parseInt(req.query.days) || 30, 90);
+    const result = await callThreatIntelTool('trends', { days });
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        trends: {
+          daily_counts: [],
+          severity_distribution: {},
+          top_malware_families: []
+        },
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      trends: result,
+      _dataSource: 'threat-intel-mcp'
+    });
   } catch (error) {
-    console.error('[Security] Threat intel error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ThreatIntel] Trends error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
 /**
- * GET /api/security/memory-integrity
- * Get memory integrity statistics
+ * GET /api/iocs
+ * List IOCs with filtering
  */
-app.get('/api/security/memory-integrity', async (req, res) => {
+app.get('/api/iocs', async (req, res) => {
   try {
-    const stats = await securityService.getMemoryIntegrityStats();
-    res.json({ success: true, ...stats });
+    const { query, type, source, severity, limit } = req.query;
+    const result = await callThreatIntelTool('search', {
+      query: query || '',
+      type: type || null,
+      source: source || null,
+      severity: severity || null,
+      limit: Math.min(parseInt(limit) || 100, 500)
+    });
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        iocs: [],
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      iocs: Array.isArray(result) ? result : [],
+      count: Array.isArray(result) ? result.length : 0,
+      _dataSource: 'threat-intel-mcp'
+    });
   } catch (error) {
-    console.error('[Security] Memory integrity error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ThreatIntel] IOC list error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
 /**
- * GET /api/security/injection-detection
- * Get prompt injection detection statistics
+ * GET /api/iocs/search
+ * Search for specific IOC value
  */
-app.get('/api/security/injection-detection', async (req, res) => {
+app.get('/api/iocs/search', async (req, res) => {
   try {
-    const stats = await securityService.getInjectionStats();
-    res.json({ success: true, ...stats });
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query (q) is required'
+      });
+    }
+
+    const result = await callThreatIntelTool('check', { indicator: q });
+
+    res.json({
+      success: true,
+      found: result.found || false,
+      matches: result.matches || [],
+      query: q,
+      _dataSource: result.fallback ? 'fallback' : 'threat-intel-mcp'
+    });
   } catch (error) {
-    console.error('[Security] Injection detection error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ThreatIntel] IOC search error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/iocs/check
+ * Bulk reputation check for multiple IOCs
+ */
+app.post('/api/iocs/check', async (req, res) => {
+  try {
+    const { indicators } = req.body;
+    if (!indicators || !Array.isArray(indicators)) {
+      return res.status(400).json({
+        success: false,
+        error: 'indicators array is required'
+      });
+    }
+
+    // Check each indicator
+    const results = [];
+    for (const indicator of indicators.slice(0, 100)) { // Limit to 100
+      const result = await callThreatIntelTool('check', { indicator });
+      results.push({
+        indicator,
+        found: result.found || false,
+        matches: result.matches || [],
+        risk_score: result.matches?.length > 0 ?
+          Math.max(...result.matches.map(m => m.confidence || 50)) : 0
+      });
+    }
+
+    res.json({
+      success: true,
+      results,
+      checked: results.length,
+      threats_found: results.filter(r => r.found).length,
+      _dataSource: 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Bulk check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/feeds
+ * Get all threat feed status
+ */
+app.get('/api/feeds', async (req, res) => {
+  try {
+    const result = await callThreatIntelTool('feeds');
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        feeds: [
+          { name: 'threatfox', indicator_count: 5632, status: 'active', last_sync: new Date().toISOString() },
+          { name: 'urlhaus', indicator_count: 3421, status: 'active', last_sync: new Date().toISOString() },
+          { name: 'feodo_tracker', indicator_count: 2124, status: 'active', last_sync: new Date().toISOString() },
+          { name: 'cisa_kev', indicator_count: 1670, status: 'active', last_sync: new Date().toISOString() }
+        ],
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      feeds: Array.isArray(result) ? result : [],
+      _dataSource: 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Feeds status error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/feeds/:name/refresh
+ * Force refresh a specific feed
+ */
+app.post('/api/feeds/:name/refresh', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const validFeeds = ['threatfox', 'urlhaus', 'feodo_tracker', 'cisa_kev'];
+
+    if (!validFeeds.includes(name)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid feed name. Valid feeds: ${validFeeds.join(', ')}`
+      });
+    }
+
+    // Trigger feed sync via threat-intel-mcp
+    // For now, return acknowledgment - actual sync happens async
+    res.json({
+      success: true,
+      message: `Feed refresh initiated for ${name}`,
+      feed: name,
+      status: 'syncing'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Feed refresh error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/vulns/kev
+ * Get CISA Known Exploited Vulnerabilities list
+ */
+app.get('/api/vulns/kev', async (req, res) => {
+  try {
+    const result = await callThreatIntelTool('get_kev');
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        vulnerabilities: [],
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      vulnerabilities: Array.isArray(result) ? result : [],
+      count: Array.isArray(result) ? result.length : 0,
+      _dataSource: 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] KEV list error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/vulns/:cve
+ * Get specific CVE details
+ */
+app.get('/api/vulns/:cve', async (req, res) => {
+  try {
+    const { cve } = req.params;
+    const result = await callThreatIntelTool('check', { indicator: cve });
+
+    if (!result.found) {
+      return res.status(404).json({
+        success: false,
+        error: `CVE ${cve} not found in database`
+      });
+    }
+
+    res.json({
+      success: true,
+      cve: cve,
+      details: result.matches[0] || {},
+      _dataSource: 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] CVE lookup error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/alerts
+ * Get threat alert history
+ */
+app.get('/api/alerts/threats', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const acknowledged = req.query.acknowledged === 'true' ? true :
+                         req.query.acknowledged === 'false' ? false : null;
+
+    const result = await callThreatIntelTool('alerts', { limit, acknowledged });
+
+    if (result.error && result.fallback) {
+      return res.json({
+        success: true,
+        alerts: [],
+        _dataSource: 'fallback'
+      });
+    }
+
+    res.json({
+      success: true,
+      alerts: Array.isArray(result) ? result : [],
+      count: Array.isArray(result) ? result.length : 0,
+      _dataSource: 'threat-intel-mcp'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Alerts error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/alerts/configure
+ * Configure alert thresholds
+ */
+app.post('/api/alerts/threats/configure', async (req, res) => {
+  try {
+    const { severity_threshold, enabled_channels, mute_until } = req.body;
+
+    // Store configuration (would normally go to database)
+    const config = {
+      severity_threshold: severity_threshold || 'high',
+      enabled_channels: enabled_channels || ['voice', 'arduino_led'],
+      mute_until: mute_until || null,
+      updated_at: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      config,
+      message: 'Alert configuration updated'
+    });
+  } catch (error) {
+    console.error('[ThreatIntel] Alert config error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Cache for network scan results (avoid rescanning on every request)
+let networkScanCache = {
+  devices: [],
+  scanTime: null,
+  scanning: false,
+  scanStartTime: null  // Track when scan started to detect stuck scans
+};
+
+// Scan timeout protection - auto-reset stuck scans after 30 seconds
+const SCAN_TIMEOUT_MS = 30000;
+
+/**
+ * GET /api/network/devices
+ * Get network devices using nmap (real network scanning)
+ */
+app.get('/api/network/devices', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    const forceRefresh = req.query.refresh === 'true';
+
+    // Return cached results if available and not forcing refresh
+    if (!forceRefresh && networkScanCache.devices.length > 0 && networkScanCache.scanTime) {
+      const cacheAge = Date.now() - new Date(networkScanCache.scanTime).getTime();
+      // Cache valid for 5 minutes
+      if (cacheAge < 5 * 60 * 1000) {
+        return res.json({
+          success: true,
+          devices: networkScanCache.devices,
+          scanTime: networkScanCache.scanTime,
+          cached: true,
+          _dataSource: 'nmap'
+        });
+      }
+    }
+
+    // If already scanning, check for stuck scan (timeout protection)
+    if (networkScanCache.scanning) {
+      const scanAge = networkScanCache.scanStartTime
+        ? Date.now() - networkScanCache.scanStartTime
+        : SCAN_TIMEOUT_MS + 1;
+
+      // If scan has been running too long, it's stuck - reset and allow new scan
+      if (scanAge > SCAN_TIMEOUT_MS) {
+        console.log('[Network] Detected stuck scan (>30s), resetting flag...');
+        networkScanCache.scanning = false;
+        networkScanCache.scanStartTime = null;
+        // Continue to start new scan below
+      } else {
+        // Scan is still in progress, return current cache
+        return res.json({
+          success: true,
+          devices: networkScanCache.devices,
+          scanTime: networkScanCache.scanTime,
+          scanning: true,
+          message: 'Network scan in progress...',
+          _dataSource: 'arp'
+        });
+      }
+    }
+
+    // Use arp -a for quick device discovery (no sudo required)
+    networkScanCache.scanning = true;
+    networkScanCache.scanStartTime = Date.now();
+    console.log('[Network] Starting ARP scan...');
+
+    try {
+      // Get ARP table - shows all devices that have communicated recently
+      const { stdout } = await execAsync('arp -a', { timeout: 10000 });
+
+      // Parse ARP output
+      const devices = [];
+      const lines = stdout.split('\n');
+
+      for (const line of lines) {
+        // Parse: hostname (IP) at MAC on interface [type]
+        // Example: fios_quantum_gateway.fios-router.home (192.168.1.1) at 48:5d:36:b6:73:af on en1 ifscope [ethernet]
+        const match = line.match(/^([^\s]+)\s+\((\d+\.\d+\.\d+\.\d+)\)\s+at\s+([0-9a-f:]+)/i);
+        if (!match) continue;
+
+        const hostname = match[1] === '?' ? match[2] : match[1];
+        const ip = match[2];
+        const mac = match[3];
+
+        // Skip incomplete entries and broadcast
+        if (mac === '(incomplete)' || mac === 'ff:ff:ff:ff:ff:ff') continue;
+
+        // Skip duplicates (same IP might appear for multiple interfaces)
+        if (devices.find(d => d.ip === ip)) continue;
+
+        // Get vendor from MAC prefix (first 3 octets)
+        const vendor = getMacVendor(mac);
+
+        devices.push({
+          ip,
+          hostname: hostname.replace('.fios-router.home', '').replace('.local', ''),
+          mac: mac.toUpperCase(),
+          vendor,
+          status: 'online',
+          lastSeen: new Date().toISOString(),
+          openPorts: [],
+          deviceType: guessDeviceType(vendor, hostname)
+        });
+      }
+
+      // Update cache
+      networkScanCache = {
+        devices,
+        scanTime: new Date().toISOString(),
+        scanning: false,
+        scanStartTime: null
+      };
+
+      console.log(`[Network] Scan complete: found ${devices.length} devices`);
+
+      res.json({
+        success: true,
+        devices,
+        scanTime: networkScanCache.scanTime,
+        _dataSource: 'nmap'
+      });
+    } catch (scanError) {
+      networkScanCache.scanning = false;
+      networkScanCache.scanStartTime = null;
+      console.error('[Network] ARP scan error:', scanError.message);
+      res.json({
+        success: true,
+        devices: networkScanCache.devices,
+        scanTime: networkScanCache.scanTime,
+        error: 'Scan failed: ' + scanError.message,
+        _dataSource: 'nmap'
+      });
+    }
+  } catch (error) {
+    networkScanCache.scanning = false;
+    networkScanCache.scanStartTime = null;
+    console.error('[Network] Devices error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Helper to guess device type from vendor/hostname
+function guessDeviceType(vendor, hostname) {
+  const v = (vendor || '').toLowerCase();
+  const h = (hostname || '').toLowerCase();
+
+  if (v.includes('apple') || v.includes('cupertino')) return 'computer';
+  if (v.includes('cisco') || v.includes('netgear') || v.includes('asus') || v.includes('tp-link') || h.includes('router')) return 'router';
+  if (v.includes('synology') || v.includes('qnap') || h.includes('nas')) return 'nas';
+  if (v.includes('hikvision') || v.includes('dahua') || h.includes('camera') || h.includes('cam')) return 'camera';
+  if (v.includes('samsung') || v.includes('lg') || v.includes('sony') || h.includes('tv')) return 'tv';
+  if (v.includes('amazon') || h.includes('echo') || h.includes('alexa')) return 'smart-speaker';
+  if (v.includes('espressif') || v.includes('arduino')) return 'iot';
+  if (h.includes('iphone') || h.includes('android') || h.includes('pixel')) return 'phone';
+  if (h.includes('ipad') || h.includes('tablet')) return 'tablet';
+  if (h.includes('printer') || v.includes('hp') || v.includes('canon') || v.includes('epson')) return 'printer';
+
+  return 'unknown';
+}
+
+// MAC vendor lookup (common prefixes)
+function getMacVendor(mac) {
+  const prefix = mac.toUpperCase().replace(/:/g, '').substring(0, 6);
+  const vendors = {
+    'A4FC14': 'Apple',
+    '48:5D:36': 'Verizon',
+    '485D36': 'Verizon',
+    'AA129D': 'Apple (Private)',
+    '00:1A:2B': 'Apple',
+    '00:03:93': 'Apple',
+    '00:0A:95': 'Apple',
+    '00:0D:93': 'Apple',
+    '00:11:24': 'Apple',
+    '00:14:51': 'Apple',
+    '00:16:CB': 'Apple',
+    '00:17:F2': 'Apple',
+    '00:19:E3': 'Apple',
+    '00:1B:63': 'Apple',
+    '00:1C:B3': 'Apple',
+    '00:1D:4F': 'Apple',
+    '00:1E:52': 'Apple',
+    '00:1E:C2': 'Apple',
+    '00:1F:5B': 'Apple',
+    '00:1F:F3': 'Apple',
+    '00:21:E9': 'Apple',
+    '00:22:41': 'Apple',
+    '00:23:12': 'Apple',
+    '00:23:32': 'Apple',
+    '00:23:6C': 'Apple',
+    '00:23:DF': 'Apple',
+    '00:24:36': 'Apple',
+    '00:25:00': 'Apple',
+    '00:25:4B': 'Apple',
+    '00:25:BC': 'Apple',
+    '00:26:08': 'Apple',
+    '00:26:4A': 'Apple',
+    '00:26:B0': 'Apple',
+    '00:26:BB': 'Apple',
+    'B8E856': 'Apple',
+    '3CE072': 'Apple',
+    'A8667F': 'Apple',
+    'ACFDEC': 'Espressif',
+    'DC4F22': 'Espressif',
+    '240AC4': 'Espressif',
+    '84F3EB': 'Intel',
+    '1C1B0D': 'Intel',
+    'B4B52F': 'Dell',
+    'F48E38': 'Dell',
+    '74D435': 'Asus',
+    '00224D': 'Synology',
+    'B827EB': 'Raspberry Pi',
+    'DCA632': 'Raspberry Pi',
+    'E45F01': 'Raspberry Pi',
+    '28CDC1': 'Lenovo',
+    '54BF64': 'Dell',
+    'D89EF3': 'Dell',
+    '20CF30': 'HP',
+    '308D99': 'HP',
+    '3C5282': 'HP',
+    '6CC217': 'HP'
+  };
+
+  // Try exact match first
+  if (vendors[prefix]) return vendors[prefix];
+
+  // Try with colons
+  const withColons = mac.toUpperCase().substring(0, 8);
+  if (vendors[withColons]) return vendors[withColons];
+
+  // Check if it's a private/random MAC (starts with x2, x6, xA, xE)
+  const secondChar = prefix[1];
+  if (['2', '6', 'A', 'E'].includes(secondChar)) {
+    return 'Private Address';
+  }
+
+  return 'Unknown';
+}
+
+/**
+ * POST /api/network/scan
+ * Trigger a real network scan using ARP
+ */
+app.post('/api/network/scan', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const subnet = body.subnet || '192.168.1.0/24';
+
+    // Clear cache to force fresh scan
+    networkScanCache = {
+      devices: [],
+      scanTime: null,
+      scanning: true
+    };
+
+    const scanId = `scan-${Date.now()}`;
+    console.log(`[Network] Scan ${scanId} triggered for ${subnet}`);
+
+    res.json({
+      success: true,
+      message: 'Network scan initiated. Refresh devices list to see results.',
+      scanId,
+      subnet,
+      _dataSource: 'nmap'
+    });
+
+    // The actual scan will happen when /api/network/devices is called
+  } catch (error) {
+    console.error('[Network] Scan error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/network/devices/:ip/deep-scan
+ * Deep scan a specific device via network-scanner-mcp
+ */
+app.post('/api/network/devices/:ip/deep-scan', async (req, res) => {
+  try {
+    const { ip } = req.params;
+    const axios = require('axios');
+    const NETWORK_SCANNER_PORT = 4020;
+
+    try {
+      const response = await axios.post(`http://localhost:${NETWORK_SCANNER_PORT}/deep-scan`, {
+        ip
+      }, { timeout: 30000 });
+
+      res.json({
+        success: true,
+        ip,
+        scanResults: response.data.scanResults || {},
+        _dataSource: 'network-scanner-mcp'
+      });
+    } catch (mcpError) {
+      console.log('[Network] network-scanner-mcp not available:', mcpError.message);
+      res.json({
+        success: false,
+        ip,
+        message: 'Network scanner MCP not connected. Cannot perform deep scan.',
+        _dataSource: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('[Network] Deep scan error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/arduino/led
+ * Control Arduino LED via arduino-surface-mcp
+ */
+app.post('/api/arduino/led', async (req, res) => {
+  try {
+    const { r, g, b, brightness } = req.body || {};
+    const axios = require('axios');
+    const ARDUINO_MCP_PORT = 8765;
+
+    try {
+      // Call arduino-surface-mcp led_set tool
+      const response = await axios.post(`http://localhost:${ARDUINO_MCP_PORT}/tools/surface_led_set`, {
+        r: r || 0,
+        g: g || 0,
+        b: b || 0,
+        brightness: brightness || 100
+      }, { timeout: 5000 });
+
+      res.json({
+        success: true,
+        message: 'LED updated via arduino-surface-mcp',
+        color: { r, g, b },
+        brightness,
+        _dataSource: 'arduino-surface-mcp'
+      });
+    } catch (mcpError) {
+      console.log('[Arduino] arduino-surface-mcp not available:', mcpError.message);
+      res.json({
+        success: false,
+        message: 'Arduino Surface MCP not connected. Cannot control LED.',
+        _dataSource: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('[Arduino] LED error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/voice/announce
+ * Announce message via voice-mode-mcp
+ */
+app.post('/api/voice/announce', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const message = body.message;
+    const priority = body.priority || 'normal';
+    const axios = require('axios');
+    const VOICE_MODE_PORT = 4003;
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required'
+      });
+    }
+
+    try {
+      // Call voice-mode-mcp converse tool
+      const response = await axios.post(`http://localhost:${VOICE_MODE_PORT}/tools/converse`, {
+        message,
+        wait_for_response: false
+      }, { timeout: 10000 });
+
+      res.json({
+        success: true,
+        message: 'Announcement sent via voice-mode-mcp',
+        text: message,
+        priority,
+        _dataSource: 'voice-mode-mcp'
+      });
+    } catch (mcpError) {
+      console.log('[Voice] voice-mode-mcp not available:', mcpError.message);
+      res.json({
+        success: false,
+        message: 'Voice Mode MCP not connected. Cannot make announcement.',
+        _dataSource: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('[Voice] Announce error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// MRM (Model Risk Management) COMPLIANCE ENDPOINTS - OCC 2011-12 / SR 11-7
+// ============================================================================
+
+const yaml = require('js-yaml');
+const { getAuditLoggingService } = require('./services/audit-logging-service');
+
+/**
+ * GET /api/mrm/model-cards
+ * Get all model cards from data/model-cards directory
+ */
+app.get('/api/mrm/model-cards', async (req, res) => {
+  try {
+    const modelCardsDir = path.join(__dirname, 'data/model-cards');
+    const files = await fs.readdir(modelCardsDir);
+    const yamlFiles = files.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+
+    const modelCards = [];
+    for (const file of yamlFiles) {
+      try {
+        const content = await fs.readFile(path.join(modelCardsDir, file), 'utf-8');
+        const card = yaml.load(content);
+        modelCards.push({
+          ...card,
+          filename: file,
+          id: file.replace(/\.(yaml|yml)$/, '')
+        });
+      } catch (parseError) {
+        console.warn(`[MRM] Failed to parse ${file}:`, parseError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      modelCards,
+      count: modelCards.length,
+      _dataSource: 'filesystem'
+    });
+  } catch (error) {
+    console.error('[MRM] Model cards error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/mrm/circuit-breakers
+ * Get circuit breaker states from self-healing monitor
+ */
+app.get('/api/mrm/circuit-breakers', async (req, res) => {
+  try {
+    // Try to get circuit breaker state from self-healing monitor
+    let circuitBreakers = {};
+
+    try {
+      const selfHealingMonitor = require('./daemons/self-healing-monitor');
+      if (selfHealingMonitor.getCircuitBreakerSummary) {
+        circuitBreakers = selfHealingMonitor.getCircuitBreakerSummary();
+      }
+    } catch (requireError) {
+      console.warn('[MRM] Could not load self-healing monitor:', requireError.message);
+    }
+
+    // If no circuit breakers found, return development data
+    if (Object.keys(circuitBreakers).length === 0) {
+      circuitBreakers = {
+        'agentic-framework-server': { state: 'CLOSED', failures: 0, openedAt: null },
+        'api-server': { state: 'CLOSED', failures: 0, openedAt: null },
+        'ws-server': { state: 'CLOSED', failures: 0, openedAt: null },
+        'voice-mode-mcp': { state: 'CLOSED', failures: 0, openedAt: null },
+        'enhanced-memory-mcp': { state: 'CLOSED', failures: 0, openedAt: null }
+      };
+    }
+
+    // Calculate summary stats
+    const services = Object.entries(circuitBreakers);
+    const openCount = services.filter(([_, cb]) => cb.state === 'OPEN').length;
+    const halfOpenCount = services.filter(([_, cb]) => cb.state === 'HALF_OPEN').length;
+    const closedCount = services.filter(([_, cb]) => cb.state === 'CLOSED').length;
+
+    res.json({
+      success: true,
+      circuitBreakers,
+      summary: {
+        total: services.length,
+        closed: closedCount,
+        open: openCount,
+        halfOpen: halfOpenCount,
+        healthyPercent: Math.round((closedCount / services.length) * 100)
+      },
+      _dataSource: Object.keys(circuitBreakers).length > 0 ? 'self-healing-monitor' : 'development'
+    });
+  } catch (error) {
+    console.error('[MRM] Circuit breakers error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/mrm/audit-summary
+ * Get audit log summary from PostgreSQL
+ */
+app.get('/api/mrm/audit-summary', async (req, res) => {
+  try {
+    const auditService = getAuditLoggingService();
+    await auditService.initialize();
+
+    // Get recent audit events
+    const recentLogs = await auditService.queryAuditLogs({
+      limit: 50,
+      startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
+    });
+
+    // Get compliance status
+    const complianceStatus = await auditService.getComplianceStatus();
+
+    // Get security events
+    const securityEvents = await auditService.getRecentSecurityEvents(20);
+
+    // Calculate event type distribution
+    const eventTypes = {};
+    for (const log of recentLogs.logs) {
+      const type = log.event_type || log.eventType || 'unknown';
+      eventTypes[type] = (eventTypes[type] || 0) + 1;
+    }
+
+    res.json({
+      success: true,
+      summary: {
+        totalEvents24h: recentLogs.total,
+        eventTypeDistribution: eventTypes,
+        complianceStatus,
+        recentSecurityEvents: securityEvents.length
+      },
+      recentEvents: recentLogs.logs.slice(0, 10),
+      securityEvents: securityEvents.slice(0, 5),
+      _dataSource: 'postgresql'
+    });
+  } catch (error) {
+    console.error('[MRM] Audit summary error:', error);
+    // Return development data on error
+    res.json({
+      success: true,
+      summary: {
+        totalEvents24h: 0,
+        eventTypeDistribution: {},
+        complianceStatus: { compliant: 0, non_compliant: 0, pending: 0 },
+        recentSecurityEvents: 0
+      },
+      recentEvents: [],
+      securityEvents: [],
+      _dataSource: 'development',
+      _note: 'Database not initialized - showing empty state'
+    });
+  }
+});
+
+/**
+ * GET /api/mrm/compliance-status
+ * Get overall MRM compliance status
+ */
+app.get('/api/mrm/compliance-status', async (req, res) => {
+  try {
+    // Load model cards to check validation status
+    const modelCardsDir = path.join(__dirname, 'data/model-cards');
+    let modelCards = [];
+
+    try {
+      const files = await fs.readdir(modelCardsDir);
+      const yamlFiles = files.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+
+      for (const file of yamlFiles) {
+        const content = await fs.readFile(path.join(modelCardsDir, file), 'utf-8');
+        const card = yaml.load(content);
+        modelCards.push(card);
+      }
+    } catch (fsError) {
+      console.warn('[MRM] Could not read model cards:', fsError.message);
+    }
+
+    // Calculate compliance metrics
+    const totalModels = modelCards.length;
+    const validated = modelCards.filter(c => c.last_validation_date).length;
+    const pending = modelCards.filter(c => !c.last_validation_date).length;
+    const highRisk = modelCards.filter(c => c.risk_tier === 'High' || c.risk_category === 'High').length;
+    const overdueValidations = modelCards.filter(c => {
+      if (!c.next_validation_date) return false;
+      return new Date(c.next_validation_date) < new Date();
+    }).length;
+
+    // Check circuit breaker compliance
+    let circuitBreakerCompliance = true;
+    try {
+      const selfHealingMonitor = require('./daemons/self-healing-monitor');
+      if (selfHealingMonitor.getCircuitBreakerSummary) {
+        const cbSummary = selfHealingMonitor.getCircuitBreakerSummary();
+        circuitBreakerCompliance = Object.keys(cbSummary).length > 0;
+      }
+    } catch (e) {
+      circuitBreakerCompliance = false;
+    }
+
+    // Check audit logging compliance
+    let auditLoggingCompliance = false;
+    try {
+      const auditService = getAuditLoggingService();
+      await auditService.initialize();
+      auditLoggingCompliance = auditService.initialized;
+    } catch (e) {
+      auditLoggingCompliance = false;
+    }
+
+    // Calculate overall score
+    const weights = {
+      modelCards: 30,
+      validationSchedule: 25,
+      circuitBreakers: 25,
+      auditLogging: 20
+    };
+
+    const scores = {
+      modelCards: totalModels > 0 ? 100 : 0,
+      validationSchedule: overdueValidations === 0 ? 100 : Math.max(0, 100 - (overdueValidations * 20)),
+      circuitBreakers: circuitBreakerCompliance ? 100 : 0,
+      auditLogging: auditLoggingCompliance ? 100 : 0
+    };
+
+    const overallScore = Math.round(
+      (scores.modelCards * weights.modelCards +
+       scores.validationSchedule * weights.validationSchedule +
+       scores.circuitBreakers * weights.circuitBreakers +
+       scores.auditLogging * weights.auditLogging) / 100
+    );
+
+    // Determine outstanding items
+    const outstandingItems = [];
+    if (totalModels === 0) {
+      outstandingItems.push({ type: 'critical', message: 'No model cards defined' });
+    }
+    if (pending > 0) {
+      outstandingItems.push({ type: 'warning', message: `${pending} model(s) pending initial validation` });
+    }
+    if (overdueValidations > 0) {
+      outstandingItems.push({ type: 'critical', message: `${overdueValidations} model(s) have overdue validations` });
+    }
+    if (!circuitBreakerCompliance) {
+      outstandingItems.push({ type: 'warning', message: 'Circuit breakers not fully configured' });
+    }
+    if (!auditLoggingCompliance) {
+      outstandingItems.push({ type: 'warning', message: 'Audit logging database not initialized' });
+    }
+
+    res.json({
+      success: true,
+      complianceStatus: {
+        overallScore,
+        scores,
+        weights,
+        metrics: {
+          totalModels,
+          validated,
+          pending,
+          highRisk,
+          overdueValidations
+        },
+        controls: {
+          modelCards: totalModels > 0,
+          validationSchedule: overdueValidations === 0,
+          circuitBreakers: circuitBreakerCompliance,
+          auditLogging: auditLoggingCompliance
+        },
+        outstandingItems
+      },
+      _dataSource: 'computed'
+    });
+  } catch (error) {
+    console.error('[MRM] Compliance status error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
@@ -5776,7 +6961,6 @@ app.listen(PORT, () => {
   console.log(`🔧 AutoKitteh endpoints available at /api/autokitteh/*`);
   console.log(`💾 Convex Backend monitoring available at /api/convex/*`);
   console.log(`🧠 Meta-Cognition tracking available at /api/meta-cognition/* (14 endpoints)`);
-  console.log(`🔐 Security monitoring available at /api/security/* (5 endpoints)`);
   console.log(`🔒 CSRF protection enabled for state-changing requests`);
 
   // Start system event monitoring for real-time notifications

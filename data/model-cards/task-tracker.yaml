@@ -1,0 +1,134 @@
+# MODEL CARD: Task Tracker Agent
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "task-tracker"
+model_name: "Task Performance Monitor"
+model_version: "1.0.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "Low"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Monitors task execution performance across the agentic system.
+  Tracks execution duration, throughput, and success rates.
+  Calculates percentile distributions (P50, P90, P99) for latency.
+  Identifies performance bottlenecks and slow tasks.
+  Broadcasts metrics via WebSocket for dashboard visualization.
+
+out_of_scope_uses: |
+  - Executing or modifying tasks
+  - Making scheduling decisions
+  - Accessing task payloads or results
+  - Terminating running tasks
+
+design_methodology: |
+  Event-driven metric aggregation with sliding window calculations.
+  Uses statistical sampling for high-throughput scenarios.
+  Chosen for low overhead and real-time dashboard requirements.
+
+## Technical Specifications
+underlying_model: "None (Rule-based)"
+model_type: "Deterministic Agent"
+input_requirements:
+  - type: "task_events"
+    description: "Task start/complete/fail events from agent runtime"
+    constraints: "Events must include task ID and timestamps"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "activeTasks": integer,
+        "completedTasks": integer,
+        "failedTasks": integer,
+        "throughput": number (tasks/minute),
+        "latencyP50": number (ms),
+        "latencyP90": number (ms),
+        "latencyP99": number (ms),
+        "bottlenecks": array
+      }
+dependencies:
+  - "Agent Runtime MCP (port 4006)"
+  - "WebSocket server (port 3003)"
+
+## Resource Requirements
+cpu_allocation: 0.3
+memory_mb: 192
+update_interval_ms: 5000
+
+## Assumptions & Limitations
+assumptions:
+  - "Task events are delivered in order"
+  - "Timestamps are accurate and synchronized"
+  - "Task IDs are unique across the system"
+
+known_limitations:
+  - "Percentile calculations use reservoir sampling (approximate)"
+  - "Historical data limited to sliding window"
+  - "Cannot track tasks without proper event emission"
+  - "High cardinality task types may cause memory pressure"
+
+failure_modes:
+  - condition: "Missing task completion event"
+    behavior: "Task appears stuck in active state"
+    mitigation: "Timeout-based cleanup after 1 hour"
+  - condition: "Event backlog during high load"
+    behavior: "Metrics may lag behind reality"
+    mitigation: "Sampling strategy for high-throughput scenarios"
+  - condition: "Memory exhaustion from too many task types"
+    behavior: "Agent restart, metrics reset"
+    mitigation: "LRU eviction for task type statistics"
+
+## Performance Metrics
+latency_p50_ms: 2
+latency_p99_ms: 10
+max_tracked_tasks: 100000
+sampling_threshold: 10000
+
+## Risk Assessment
+risk_category: "Low"
+risk_justification: |
+  - Read-only monitoring with no execution capability
+  - No access to task data or results
+  - Failure results in missing metrics only
+  - Easily replaceable with minimal service disruption
+
+potential_impacts:
+  - impact: "Dashboard shows stale task metrics"
+    severity: "Low"
+    likelihood: "Low"
+  - impact: "Bottleneck detection delayed"
+    severity: "Low"
+    likelihood: "Medium"
+
+## Validation Schedule
+validation_frequency: "Annual"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Metric Accuracy Test"
+    description: "Compare tracked metrics against known task execution"
+    acceptance_criteria: "Within 1% of actual counts"
+  - name: "Percentile Accuracy Test"
+    description: "Verify P50/P90/P99 against full dataset"
+    acceptance_criteria: "Within 5% of true percentiles"
+  - name: "Throughput Test"
+    description: "Process 10,000 task events per minute"
+    acceptance_criteria: "No event loss, < 100ms lag"
+
+## Change History
+changes:
+  - date: "2025-11-11"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.0.0"
+    description: "Model card created for OCC 2011-12 compliance"
+    approved_by: "Phoenix (AI Assistant)"

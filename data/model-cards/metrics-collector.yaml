@@ -1,0 +1,130 @@
+# MODEL CARD: Metrics Collector Agent
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "metrics-collector"
+model_name: "System Metrics Collector"
+model_version: "1.0.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "Low"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Collects real-time system metrics including CPU usage, memory consumption,
+  active tasks, completed tasks, error counts, and uptime. Broadcasts metrics
+  via WebSocket for dashboard visualization and alerting systems.
+
+out_of_scope_uses: |
+  - Making autonomous operational decisions based on metrics
+  - Modifying system configuration
+  - Accessing sensitive data or credentials
+  - Any action beyond read-only metric collection
+
+design_methodology: |
+  Event-driven polling architecture with configurable update intervals.
+  Chosen for low resource footprint and real-time dashboard requirements.
+  Uses Node.js process metrics APIs for cross-platform compatibility.
+
+## Technical Specifications
+underlying_model: "None (Rule-based)"
+model_type: "Deterministic Agent"
+input_requirements:
+  - type: "system_apis"
+    description: "Node.js os, process, and v8 modules"
+    constraints: "Read-only access to system metrics"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "cpu_usage": number (0-100),
+        "memory_usage": number (0-100),
+        "active_tasks": integer,
+        "completed_tasks": integer,
+        "error_count": integer,
+        "uptime": integer (seconds)
+      }
+dependencies:
+  - "WebSocket server (port 3003)"
+  - "Agentic Framework API (port 4100)"
+
+## Resource Requirements
+cpu_allocation: 0.3
+memory_mb: 128
+update_interval_ms: 10000
+
+## Assumptions & Limitations
+assumptions:
+  - "System APIs provide accurate real-time data"
+  - "WebSocket connection remains stable"
+  - "Dashboard consumers handle stale data gracefully"
+
+known_limitations:
+  - "Cannot detect metrics from isolated containers"
+  - "CPU usage is sampled, not continuous"
+  - "Memory includes Node.js heap only, not native modules"
+  - "No persistence - metrics lost if agent restarts"
+
+failure_modes:
+  - condition: "WebSocket disconnection"
+    behavior: "Metrics buffered locally, broadcast resumed on reconnect"
+    mitigation: "Automatic reconnection with exponential backoff"
+  - condition: "System API unavailable"
+    behavior: "Returns last known values with stale flag"
+    mitigation: "Alert generated after 3 consecutive failures"
+  - condition: "High CPU load on host"
+    behavior: "Update interval may drift"
+    mitigation: "Priority scheduling, adaptive interval"
+
+## Performance Metrics
+latency_p50_ms: 5
+latency_p99_ms: 25
+error_rate_threshold: 0.01
+staleness_threshold_ms: 30000
+
+## Risk Assessment
+risk_category: "Low"
+risk_justification: |
+  - Read-only operation with no system modification capability
+  - No customer data access
+  - No financial impact on failure
+  - Easily replaceable with minimal service disruption
+
+potential_impacts:
+  - impact: "Dashboard displays stale data"
+    severity: "Low"
+    likelihood: "Low"
+  - impact: "Alerting delays due to missing metrics"
+    severity: "Medium"
+    likelihood: "Very Low"
+
+## Validation Schedule
+validation_frequency: "Annual"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Metric Accuracy Test"
+    description: "Compare reported metrics against independent system tools"
+    acceptance_criteria: "Within 5% of baseline measurements"
+  - name: "Latency Test"
+    description: "Measure time from collection to WebSocket broadcast"
+    acceptance_criteria: "P99 < 100ms"
+  - name: "Recovery Test"
+    description: "Verify graceful handling of WebSocket disconnection"
+    acceptance_criteria: "Auto-reconnect within 30 seconds"
+
+## Change History
+changes:
+  - date: "2025-10-07"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.0.0"
+    description: "Model card created for OCC 2011-12 compliance"
+    approved_by: "Phoenix (AI Assistant)"

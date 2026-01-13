@@ -1,0 +1,132 @@
+# MODEL CARD: Workflow Analyzer
+# OCC 2011-12 / SR 11-7 Compliant Documentation
+
+## Basic Information
+model_id: "workflow-analyzer"
+model_name: "Workflow Bottleneck Analyzer"
+model_version: "1.0.0"
+owner: "Platform Operations Team"
+last_updated: "2026-01-13"
+risk_tier: "Low"
+status: "Active"
+validation_status: "Pending Initial Validation"
+
+## Purpose & Design
+intended_use: |
+  Analyzes workflow execution patterns to identify bottlenecks.
+  Tracks workflow duration, success rates, and step-level performance.
+  Identifies slow steps and failure points in multi-step workflows.
+  Provides optimization recommendations based on historical patterns.
+  Broadcasts analytics via WebSocket for dashboard visualization.
+
+out_of_scope_uses: |
+  - Executing or modifying workflows
+  - Canceling running workflows
+  - Accessing workflow data or payloads
+  - Making routing decisions
+
+design_methodology: |
+  Critical path analysis with statistical bottleneck detection.
+  Uses step-level timing to identify constraint resources.
+  Chosen for actionable optimization insights.
+
+## Technical Specifications
+underlying_model: "None (Rule-based)"
+model_type: "Deterministic Agent"
+input_requirements:
+  - type: "workflow_events"
+    description: "Workflow start/step/complete/fail events"
+    constraints: "Events must include workflow ID and step timestamps"
+output_format:
+  - type: "json"
+    schema: |
+      {
+        "activeWorkflows": integer,
+        "completedWorkflows": integer,
+        "failedWorkflows": integer,
+        "avgDuration": number (ms),
+        "successRate": number (0-1),
+        "bottlenecks": array[{step, avgDuration, frequency}],
+        "recommendations": array[string]
+      }
+dependencies:
+  - "Workflow API (port 4100)"
+  - "WebSocket server (port 3003)"
+
+## Resource Requirements
+cpu_allocation: 0.3
+memory_mb: 192
+analysis_interval_ms: 60000
+
+## Assumptions & Limitations
+assumptions:
+  - "Workflows emit proper lifecycle events"
+  - "Step names are consistent across workflow runs"
+  - "Timing data is accurate"
+
+known_limitations:
+  - "Cannot analyze workflows without proper instrumentation"
+  - "Historical data limited to session duration"
+  - "Cannot detect external bottlenecks (network, APIs)"
+  - "Recommendations are heuristic-based"
+
+failure_modes:
+  - condition: "Missing workflow events"
+    behavior: "Incomplete analysis with warning"
+    mitigation: "Event reconciliation on workflow completion"
+  - condition: "High workflow cardinality"
+    behavior: "Memory pressure, sampling activated"
+    mitigation: "LRU eviction for workflow statistics"
+  - condition: "All workflows slow"
+    behavior: "May indicate systemic issue"
+    mitigation: "Cross-reference with system metrics"
+
+## Performance Metrics
+latency_p50_ms: 100
+latency_p99_ms: 500
+analysis_coverage_threshold: 0.90
+
+## Risk Assessment
+risk_category: "Low"
+risk_justification: |
+  - Read-only analysis with no operational capability
+  - Recommendations are advisory only
+  - Failure results in missing insights only
+  - No access to workflow data content
+
+potential_impacts:
+  - impact: "Missed bottleneck identification"
+    severity: "Low"
+    likelihood: "Medium"
+  - impact: "Incorrect optimization recommendation"
+    severity: "Low"
+    likelihood: "Medium"
+
+## Validation Schedule
+validation_frequency: "Annual"
+last_validation_date: null
+next_validation_date: "2026-04-13"
+validator: "TBD"
+
+## Validation Procedures
+validation_tests:
+  - name: "Bottleneck Detection Test"
+    description: "Inject known slow step and verify detection"
+    acceptance_criteria: "Detection within 5 workflow completions"
+  - name: "Duration Accuracy Test"
+    description: "Compare reported durations to actual"
+    acceptance_criteria: "Within 1% of actual duration"
+  - name: "Success Rate Accuracy Test"
+    description: "Verify success rate calculation"
+    acceptance_criteria: "Exact match to actual success rate"
+
+## Change History
+changes:
+  - date: "2025-11-11"
+    version: "1.0.0"
+    description: "Initial deployment"
+    approved_by: "System"
+  - date: "2026-01-13"
+    version: "1.0.0"
+    description: "Model card created for OCC 2011-12 compliance"
+    approved_by: "Phoenix (AI Assistant)"
