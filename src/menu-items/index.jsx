@@ -6,11 +6,12 @@ import agents from './agents';
 import process from './process';
 import personaLab from './persona-lab';
 import agenticSystem from './agentic-system';
+import threatIntelligence from './threat-intelligence';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [agenticSystem, dashboard, finetuning, agents, process, personaLab, utilities]
+  items: [agenticSystem, dashboard, threatIntelligence, finetuning, agents, process, personaLab, utilities]
 };
 
 export default menuItems;
