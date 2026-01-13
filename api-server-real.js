@@ -13,6 +13,15 @@ const csrf = require('csurf');
 const { getOrchestratorService } = require('./src/services/orchestrator-service');
 const notificationRoutes = require('./routes/notifications');
 const telemetryRoutes = require('./routes/telemetry');
+const aiStudioRoutes = require('./routes/ai-studio');
+const calibrationRoutes = require('./routes/calibration');
+const clusterRoutes = require('./routes/cluster');
+const curiosityRoutes = require('./routes/curiosity');
+const evolutionRoutes = require('./routes/evolution');
+const reasoningRoutes = require('./routes/reasoning');
+const researchRoutes = require('./routes/research');
+const securityRoutes = require('./routes/security');
+const visualRoutes = require('./routes/visual');
 const autonomousOperationRoutes = require('./services/autonomous-operation/autonomous-operation-api');
 const SystemEventNotifier = require('./services/system-event-notifier');
 const ServiceManager = require('./services/service-manager');
@@ -696,6 +705,42 @@ app.use('/api/telemetry', telemetryRoutes);
 // ===== AUTONOMOUS OPERATION ROUTES =====
 // OODA Loop, Self-Healing, and Production Monitoring
 app.use('/api/autonomous', autonomousOperationRoutes);
+
+// ===== AI STUDIO ROUTES =====
+// AI Studio workspace and conversation management
+app.use('/api/ai-studio', aiStudioRoutes);
+
+// ===== CALIBRATION ROUTES =====
+// System calibration and baseline management
+app.use('/api/calibration', calibrationRoutes);
+
+// ===== CLUSTER ROUTES =====
+// Distributed cluster management and coordination
+app.use('/api/cluster', clusterRoutes);
+
+// ===== CURIOSITY ROUTES =====
+// Curiosity-driven exploration and knowledge gap tracking
+app.use('/api/curiosity', curiosityRoutes);
+
+// ===== EVOLUTION ROUTES =====
+// Evolutionary algorithm capabilities (genetic algorithms)
+app.use('/api/evolution', evolutionRoutes);
+
+// ===== REASONING ROUTES =====
+// Advanced reasoning and inference capabilities
+app.use('/api/reasoning', reasoningRoutes);
+
+// ===== RESEARCH ROUTES =====
+// Research paper search and knowledge synthesis
+app.use('/api/research', researchRoutes);
+
+// ===== SECURITY ROUTES =====
+// Security scanning and vulnerability management
+app.use('/api/security', securityRoutes);
+
+// ===== VISUAL ROUTES =====
+// Visual processing and TPU-accelerated inference
+app.use('/api/visual', visualRoutes);
 
 // ===== PORT DISCOVERY ENDPOINTS =====
 app.get('/api/port-discovery/urls', async (req, res) => {
